@@ -32,58 +32,21 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore exact Lunari 0.2.4 artwork
+      - name: Verify embedded Lunari 0.2.4 artwork
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/res/drawable-nodpi
-          rm -f app/src/main/res/drawable-nodpi/lunari_home_bg.* \
-                app/src/main/res/drawable-nodpi/lunari_character.* \
-                app/src/main/res/drawable-nodpi/lunari_world.* \
-                app/src/main/res/drawable-nodpi/lunari_chat.* \
-                app/src/main/res/drawable-nodpi/lunari_memory.* \
-                app/src/main/res/drawable-nodpi/lunari_profiles.* \
-                app/src/main/res/drawable-nodpi/lunari_snapshots.* \
-                app/src/main/res/drawable-nodpi/lunari_launcher_icon.*
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
+          file app/src/main/res/drawable-nodpi/lunari_*
 
-          python - <<'PY'
-          from pathlib import Path
-          import base64, tarfile
-
-          parts = []
-          for i in (1, 2, 3):
-              text = Path(f"assets/v024/artwork.part{i}.b64").read_text(encoding="utf-8")
-              parts.append("".join(text.split()))
-          archive = base64.b64decode("".join(parts), validate=False)
-          archive_path = Path("/tmp/lunari024-artwork.tar.gz")
-          archive_path.write_bytes(archive)
-
-          target = Path("app/src/main/res/drawable-nodpi")
-          with tarfile.open(archive_path, "r:gz") as tf:
-              tf.extractall(target)
-
-          icon_text = Path("assets/v024/lunari_launcher_icon.webp.b64").read_text(encoding="utf-8")
-          icon = base64.b64decode("".join(icon_text.split()), validate=False)
-          (target / "lunari_launcher_icon.webp").write_bytes(icon)
-
-          required = [
-              "lunari_home_bg.webp",
-              "lunari_character.webp",
-              "lunari_world.webp",
-              "lunari_chat.webp",
-              "lunari_memory.webp",
-              "lunari_profiles.webp",
-              "lunari_snapshots.webp",
-              "lunari_launcher_icon.webp",
-          ]
-          for name in required:
-              p = target / name
-              if not p.is_file() or p.stat().st_size < 1000:
-                  raise SystemExit(f"Missing artwork: {name}")
-              print(name, p.stat().st_size)
-          PY
-
-      - name: Activate Lunari reference home
+      - name: Activate Lunari 0.2.4 reference home
         shell: bash
         run: |
           python - <<'PY'
@@ -105,12 +68,13 @@ jobs:
       - name: Verify build artifact
         shell: bash
         run: |
+          set -euo pipefail
           test -s app/build/outputs/apk/debug/app-debug.apk
           sha256sum app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.4-unsigned-base
+          name: lunari-0.2.4-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
