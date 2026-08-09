@@ -3,6 +3,7 @@ package com.vega.yakor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -95,11 +96,11 @@ fun LunariHomeV2(
 private fun LunariHero024(onMagic: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(194.dp)) {
         Surface(
-            onClick = onMagic,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 6.dp, end = 2.dp)
-                .size(40.dp),
+                .size(40.dp)
+                .clickable(onClick = onMagic),
             shape = CircleShape,
             color = Color(0x24101831),
             border = BorderStroke(1.dp, Lavender024.copy(alpha = .34f)),
@@ -159,8 +160,10 @@ private fun LunariCard024(
     onClick: () -> Unit
 ) {
     Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(116.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(116.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(27.dp),
         color = Color.Transparent,
         border = BorderStroke(
@@ -286,8 +289,10 @@ private fun LunariBottom024(
         }
 
         Surface(
-            onClick = onAdd,
-            modifier = Modifier.align(Alignment.Center).size(59.dp),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(59.dp)
+                .clickable(onClick = onAdd),
             shape = CircleShape,
             color = Color(0xFF7150D2),
             border = BorderStroke(1.dp, Color(0xFFE0D4FF).copy(alpha = .78f)),
