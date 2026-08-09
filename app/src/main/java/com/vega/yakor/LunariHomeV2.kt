@@ -1,7 +1,6 @@
 package com.vega.yakor
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,16 +17,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val Night = Color(0xFF070B1B)
-private val Glass = Color(0xCC15162E)
-private val GlassSoft = Color(0xB81C1C38)
+private val Night2 = Color(0xFF11132C)
+private val Glass = Color(0xD9151730)
+private val GlassSoft = Color(0xC91B1C38)
 private val Lavender = Color(0xFFD9CBFF)
 private val Lavender2 = Color(0xFFBCA8FF)
 private val Muted = Color(0xFFB7B1D0)
@@ -41,30 +39,51 @@ fun LunariHomeV2(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Night)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF080B1C),
+                        Color(0xFF111331),
+                        Color(0xFF090D20),
+                        Night
+                    )
+                )
+            )
     ) {
-        Image(
-            painter = painterResource(R.drawable.lunari_home_bg),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .align(Alignment.TopCenter),
-            contentScale = ContentScale.Crop,
-            alpha = 0.82f
-        )
-
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(330.dp)
+                .height(260.dp)
                 .background(
-                    Brush.verticalGradient(
-                        0f to Color(0x22060A1A),
-                        0.55f to Color(0x55070B1B),
-                        1f to Night
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0x557A62C5),
+                            Color(0x223A356A),
+                            Color.Transparent
+                        )
                     )
                 )
+        )
+
+        Text(
+            "☾",
+            color = Lavender.copy(alpha = 0.95f),
+            fontSize = 68.sp,
+            lineHeight = 70.sp,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(start = 24.dp, top = 18.dp)
+        )
+
+        Text(
+            "✦",
+            color = Color(0xFFEDE4FF),
+            fontSize = 28.sp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(end = 48.dp, top = 62.dp)
         )
 
         Scaffold(
@@ -93,31 +112,22 @@ fun LunariHomeV2(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(218.dp),
+                            .height(210.dp),
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "☾",
-                                color = Lavender,
-                                fontSize = 34.sp,
-                                lineHeight = 34.sp
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Lunari",
-                                color = Ivory,
-                                fontSize = 38.sp,
-                                lineHeight = 42.sp,
-                                fontFamily = FontFamily.Serif,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text(
+                            "Lunari",
+                            color = Ivory,
+                            fontSize = 43.sp,
+                            lineHeight = 46.sp,
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Medium
+                        )
                         Text(
                             "твои персонажи, миры и истории",
                             color = Lavender.copy(alpha = 0.92f),
                             fontSize = 15.sp,
-                            modifier = Modifier.padding(start = 3.dp, top = 2.dp, bottom = 12.dp)
+                            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                         )
                     }
                 }
@@ -127,7 +137,7 @@ fun LunariHomeV2(
                         "Продолжить историю",
                         color = Ivory,
                         fontFamily = FontFamily.Serif,
-                        fontSize = 22.sp,
+                        fontSize = 21.sp,
                         modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                     )
                 }
@@ -247,9 +257,9 @@ private fun LunariStoryCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(86.dp)
+            .height(82.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(23.dp),
         color = Glass,
         border = BorderStroke(
             1.dp,
@@ -259,8 +269,7 @@ private fun LunariStoryCard(
                     Color.White.copy(alpha = 0.07f)
                 )
             )
-        ),
-        shadowElevation = 1.dp
+        )
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp),
@@ -268,13 +277,13 @@ private fun LunariStoryCard(
         ) {
             Box(
                 Modifier
-                    .size(50.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Lavender2.copy(alpha = 0.25f),
-                                Color(0xFF262342)
+                                Lavender2.copy(alpha = 0.26f),
+                                Night2
                             )
                         )
                     ),
@@ -284,29 +293,26 @@ private fun LunariStoryCard(
                     icon,
                     contentDescription = null,
                     tint = Lavender,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
-
             Spacer(Modifier.width(13.dp))
-
             Column(Modifier.weight(1f)) {
                 Text(
                     title,
                     color = Ivory,
                     fontFamily = FontFamily.Serif,
-                    fontSize = 23.sp,
-                    lineHeight = 25.sp
+                    fontSize = 22.sp,
+                    lineHeight = 24.sp
                 )
                 Text(
                     subtitle,
                     color = Muted,
-                    fontSize = 12.5.sp,
-                    lineHeight = 16.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
                     maxLines = 1
                 )
             }
-
             Text(
                 count.toString(),
                 color = Lavender,
@@ -334,14 +340,14 @@ private fun LunariMiniCard(
 ) {
     Surface(
         modifier = modifier
-            .height(82.dp)
+            .height(78.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(21.dp),
         color = GlassSoft,
         border = BorderStroke(1.dp, Lavender2.copy(alpha = 0.20f))
     ) {
         Column(
-            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -352,20 +358,16 @@ private fun LunariMiniCard(
                     icon,
                     contentDescription = null,
                     tint = Lavender2,
-                    modifier = Modifier.size(21.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.weight(1f))
-                Text(
-                    count.toString(),
-                    color = Muted,
-                    fontSize = 12.sp
-                )
+                Text(count.toString(), color = Muted, fontSize = 12.sp)
             }
             Text(
                 title,
                 color = Ivory,
                 fontFamily = FontFamily.Serif,
-                fontSize = 18.sp
+                fontSize = 17.sp
             )
         }
     }
@@ -386,52 +388,30 @@ private fun LunariBottomV2(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .height(72.dp)
+                .height(68.dp)
                 .padding(horizontal = 22.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {}) {
-                Icon(
-                    Icons.Outlined.Home,
-                    contentDescription = "Главная",
-                    tint = Ivory,
-                    modifier = Modifier.size(25.dp)
-                )
+                Icon(Icons.Outlined.Home, "Главная", tint = Ivory, modifier = Modifier.size(24.dp))
             }
-
             FilledIconButton(
                 onClick = onAdd,
-                modifier = Modifier.size(54.dp),
-                shape = RoundedCornerShape(19.dp),
+                modifier = Modifier.size(52.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = Color(0xFF8D74E8),
                     contentColor = Color.White
                 )
             ) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = "Создать",
-                    modifier = Modifier.size(29.dp)
-                )
+                Icon(Icons.Outlined.Add, "Создать", modifier = Modifier.size(28.dp))
             }
-
             IconButton(onClick = onMagic) {
-                Icon(
-                    Icons.Outlined.AutoAwesome,
-                    contentDescription = "ИИ",
-                    tint = Lavender,
-                    modifier = Modifier.size(25.dp)
-                )
+                Icon(Icons.Outlined.AutoAwesome, "ИИ", tint = Lavender, modifier = Modifier.size(24.dp))
             }
-
             IconButton(onClick = onProfile) {
-                Icon(
-                    Icons.Outlined.PersonOutline,
-                    contentDescription = "Профиль",
-                    tint = Lavender,
-                    modifier = Modifier.size(25.dp)
-                )
+                Icon(Icons.Outlined.PersonOutline, "Профиль", tint = Lavender, modifier = Modifier.size(24.dp))
             }
         }
     }
