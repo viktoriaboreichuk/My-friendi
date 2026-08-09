@@ -1,4 +1,4 @@
-name: Build Yakor APK
+name: Build Lunari APK
 
 on:
   workflow_dispatch:
@@ -32,12 +32,48 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
+      - name: Restore Lunari signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lunari-stable-debug-key-v1
+
+      - name: Ensure stable debug signing key
+        shell: bash
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -dname "CN=Android Debug,O=Lunari,C=NL" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000
+          fi
+
+      - name: Activate Lunari reference home
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = p.read_text(encoding="utf-8")
+          old = "Route.Home -> HomeScreen(store, navigate)"
+          new = "Route.Home -> LunariHomeV2(store, navigate)"
+          if old not in s:
+              raise SystemExit("Home route marker not found")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          PY
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-debug-apk
+          name: lunari-0.2.0-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
