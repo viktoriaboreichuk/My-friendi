@@ -1,0 +1,28 @@
+name: Export Android apksigner
+
+on:
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  export-apksigner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install build tools
+        run: sdkmanager "build-tools;35.0.0"
+
+      - name: Prepare apksigner
+        run: cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/apksigner.jar
+
+      - name: Upload apksigner
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apksigner-35
+          path: /tmp/apksigner.jar
+          if-no-files-found: error
