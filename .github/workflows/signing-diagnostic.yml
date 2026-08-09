@@ -1,0 +1,47 @@
+name: Diagnose Lunari signing
+
+on:
+  push:
+    branches: [ "lunari-023-stage" ]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.13'
+          cache-provider: basic
+      - name: Restore cached key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lunari-stable-debug-key-v1
+      - name: Inspect signing locations
+        shell: bash
+        run: |
+          echo "HOME=$HOME"
+          echo "GRADLE_USER_HOME=$GRADLE_USER_HOME"
+          echo "ANDROID_USER_HOME=${ANDROID_USER_HOME:-<unset>}"
+          echo "ANDROID_SDK_HOME=${ANDROID_SDK_HOME:-<unset>}"
+          echo "Java user.home:"
+          java -XshowSettings:properties -version 2>&1 | grep 'user.home' || true
+          echo "Candidate keystores before Gradle:"
+          find /home/runner -name 'debug.keystore' -type f -print 2>/dev/null || true
+          if [ -f "$HOME/.android/debug.keystore" ]; then
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'Owner:|SHA256:' || true
+          fi
+          gradle :app:signingReport --no-daemon
+          echo "Candidate keystores after Gradle:"
+          find /home/runner -name 'debug.keystore' -type f -print 2>/dev/null || true
+          while IFS= read -r k; do
+            echo "KEYSTORE=$k"
+            keytool -list -v -keystore "$k" -storepass android -alias androiddebugkey 2>/dev/null | grep -E 'Owner:|SHA256:' || true
+          done < <(find /home/runner -name 'debug.keystore' -type f 2>/dev/null)
