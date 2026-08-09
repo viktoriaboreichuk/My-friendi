@@ -3,6 +3,8 @@ name: Diagnose 0.2.4 assets
 on:
   push:
     branches: [ "lunari-ui-refresh" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   diagnose:
