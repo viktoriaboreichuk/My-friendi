@@ -46,18 +46,33 @@ jobs:
                 app/src/main/res/drawable-nodpi/lunari_snapshots.* \
                 app/src/main/res/drawable-nodpi/lunari_launcher_icon.*
 
-          cat assets/v024/artwork.part1.b64 \
-              assets/v024/artwork.part2.b64 \
-              assets/v024/artwork.part3.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode > /tmp/lunari024-artwork.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
 
-          echo "6274be431bc705ad4bed27048e9de59240656d608a22a731dcbf6c4721eeea64  /tmp/lunari024-artwork.tar.gz" | sha256sum -c -
+          parts = []
+          for i in (1, 2, 3):
+              text = Path(f"assets/v024/artwork.part{i}.b64").read_text(encoding="utf-8")
+              parts.append("".join(text.split()))
+          raw = base64.b64decode("".join(parts), validate=True)
+          digest = hashlib.sha256(raw).hexdigest()
+          expected = "6274be431bc705ad4bed27048e9de59240656d608a22a731dcbf6c4721eeea64"
+          if digest != expected:
+              raise SystemExit(f"Artwork archive SHA mismatch: {digest}")
+          Path("/tmp/lunari024-artwork.tar.gz").write_bytes(raw)
+
+          icon_text = Path("assets/v024/lunari_launcher_icon.webp.b64").read_text(encoding="utf-8")
+          icon = base64.b64decode("".join(icon_text.split()), validate=True)
+          icon_digest = hashlib.sha256(icon).hexdigest()
+          icon_expected = "8e685a9beafd304a7fa8cd47fdb4d60a0895b58383b4823677ad2a49cb1e69ea"
+          if icon_digest != icon_expected:
+              raise SystemExit(f"Launcher icon SHA mismatch: {icon_digest}")
+          Path("app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp").write_bytes(icon)
+          print("Artwork archive SHA OK:", digest)
+          print("Launcher icon SHA OK:", icon_digest)
+          PY
+
           tar -xzf /tmp/lunari024-artwork.tar.gz -C app/src/main/res/drawable-nodpi
-
-          tr -d '\r\n' < assets/v024/lunari_launcher_icon.webp.b64 \
-            | base64 --decode > app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp
-          echo "8e685a9beafd304a7fa8cd47fdb4d60a0895b58383b4823677ad2a49cb1e69ea  app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp" | sha256sum -c -
 
           test -s app/src/main/res/drawable-nodpi/lunari_home_bg.webp
           test -s app/src/main/res/drawable-nodpi/lunari_character.webp
