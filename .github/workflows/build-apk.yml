@@ -32,159 +32,42 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore Lunari signing key
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: lunari-stable-debug-key-v1
-
-      - name: Ensure stable debug signing key
+      - name: Restore exact Lunari 0.2.4 artwork
         shell: bash
         run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -v \
-              -keystore ~/.android/debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -dname "CN=Android Debug,O=Lunari,C=NL" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000
-          fi
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA256:|Owner:" || true
-
-      - name: Generate Lunari 0.2.3 artwork
-        shell: bash
-        run: |
-          python -m pip install --disable-pip-version-check pillow
+          set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
-          python - <<'PY'
-          from PIL import Image, ImageDraw, ImageFilter
-          from pathlib import Path
-          import random, math
+          rm -f app/src/main/res/drawable-nodpi/lunari_home_bg.* \
+                app/src/main/res/drawable-nodpi/lunari_character.* \
+                app/src/main/res/drawable-nodpi/lunari_world.* \
+                app/src/main/res/drawable-nodpi/lunari_chat.* \
+                app/src/main/res/drawable-nodpi/lunari_memory.* \
+                app/src/main/res/drawable-nodpi/lunari_profiles.* \
+                app/src/main/res/drawable-nodpi/lunari_snapshots.* \
+                app/src/main/res/drawable-nodpi/lunari_launcher_icon.*
 
-          out = Path('app/src/main/res/drawable-nodpi')
-          random.seed(203)
+          cat assets/v024/artwork.part1.b64 \
+              assets/v024/artwork.part2.b64 \
+              assets/v024/artwork.part3.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode > /tmp/lunari024-artwork.tar.gz
 
-          def gradient(size, top, bottom):
-              w,h=size
-              im=Image.new('RGB',size)
-              d=ImageDraw.Draw(im)
-              for y in range(h):
-                  t=y/max(1,h-1)
-                  c=tuple(int(top[i]*(1-t)+bottom[i]*t) for i in range(3))
-                  d.line((0,y,w,y),fill=c)
-              return im.convert('RGBA')
+          echo "6274be431bc705ad4bed27048e9de59240656d608a22a731dcbf6c4721eeea64  /tmp/lunari024-artwork.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/lunari024-artwork.tar.gz -C app/src/main/res/drawable-nodpi
 
-          def stars(im, count, alpha=(90,220), margin=0):
-              d=ImageDraw.Draw(im)
-              w,h=im.size
-              for _ in range(count):
-                  x=random.randrange(margin,max(margin+1,w-margin)); y=random.randrange(margin,max(margin+1,h-margin))
-                  r=1 if random.random()<.88 else random.choice((2,3))
-                  a=random.randint(*alpha)
-                  d.ellipse((x-r,y-r,x+r,y+r),fill=(221,211,255,a))
-              return im
+          tr -d '\r\n' < assets/v024/lunari_launcher_icon.webp.b64 \
+            | base64 --decode > app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp
+          echo "8e685a9beafd304a7fa8cd47fdb4d60a0895b58383b4823677ad2a49cb1e69ea  app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp" | sha256sum -c -
 
-          def glow(im, box, color=(164,119,255,105), blur=28):
-              lay=Image.new('RGBA',im.size,(0,0,0,0)); d=ImageDraw.Draw(lay)
-              d.ellipse(box,fill=color); lay=lay.filter(ImageFilter.GaussianBlur(blur))
-              return Image.alpha_composite(im,lay)
-
-          # Full-screen lunar background: moon, violet nebula, distant citadel.
-          bg=gradient((1080,2400),(5,9,28),(18,12,42)); bg=stars(bg,420,(75,210))
-          neb=Image.new('RGBA',bg.size,(0,0,0,0)); nd=ImageDraw.Draw(neb)
-          nd.ellipse((-280,40,1280,1360),fill=(78,55,142,72)); nd.ellipse((300,240,1360,1500),fill=(108,64,157,42))
-          neb=neb.filter(ImageFilter.GaussianBlur(150)); bg=Image.alpha_composite(bg,neb)
-          moon=Image.new('RGBA',bg.size,(0,0,0,0)); md=ImageDraw.Draw(moon)
-          md.ellipse((255,100,825,670),fill=(236,227,255,255)); md.ellipse((430,20,935,585),fill=(10,13,39,255))
-          moon=moon.filter(ImageFilter.GaussianBlur(1.2)); bg=Image.alpha_composite(bg,moon)
-          d=ImageDraw.Draw(bg)
-          # horizon and castle silhouette
-          d.polygon([(0,1440),(130,1280),(250,1405),(390,1190),(535,1410),(700,1220),(860,1400),(980,1270),(1080,1380),(1080,2400),(0,2400)],fill=(7,10,28,245))
-          for x,w,h in [(250,90,330),(455,120,470),(675,85,300)]:
-              d.rectangle((x,1320-h,x+w,1480),fill=(5,8,23,255))
-              d.polygon([(x-12,1320-h),(x+w/2,1240-h),(x+w+12,1320-h)],fill=(5,8,23,255))
-          for x,y in [(278,1180),(492,1028),(520,1100),(702,1180)]:
-              d.rounded_rectangle((x,y,x+13,y+24),radius=4,fill=(242,188,132,210))
-          # lower readability veil
-          veil=Image.new('RGBA',bg.size,(0,0,0,0)); vd=ImageDraw.Draw(veil)
-          for y in range(900,2400):
-              t=(y-900)/1500
-              vd.line((0,y,1080,y),fill=(4,8,26,int(35+190*t)))
-          bg=Image.alpha_composite(bg,veil).convert('RGB')
-          bg.save(out/'lunari_home_bg.jpg',quality=94,optimize=True,progressive=True)
-
-          # Launcher artwork intentionally has a generous safe margin.
-          icon=gradient((512,512),(7,12,34),(30,20,64)); icon=stars(icon,95,(100,220),35)
-          icon=glow(icon,(90,70,390,390),(174,131,255,105),34); idr=ImageDraw.Draw(icon)
-          idr.ellipse((126,104,360,338),fill=(234,224,255,255))
-          idr.ellipse((202,69,395,285),fill=(18,17,51,255))
-          # four-point star
-          cx,cy=355,315; r1,r2=38,7
-          pts=[]
-          for i in range(16):
-              a=-math.pi/2+i*math.pi/8; r=r1 if i%4==0 else (r2 if i%2 else 13)
-              pts.append((cx+math.cos(a)*r,cy+math.sin(a)*r))
-          idr.polygon(pts,fill=(247,235,255,255))
-          idr.ellipse((292,374,302,384),fill=(198,169,245,240))
-          icon.convert('RGB').save(out/'lunari_launcher_icon.jpg',quality=95,optimize=True)
-
-          SIZE=512
-          def card_canvas(a=(8,12,36),b=(43,29,79)):
-              im=gradient((SIZE,SIZE),a,b); stars(im,105,(80,205),18); return im
-
-          # Characters — moonlit portrait.
-          im=glow(card_canvas(),(80,45,430,440)); dr=ImageDraw.Draw(im)
-          dr.ellipse((173,105,355,327),fill=(211,169,184,255)); dr.pieslice((133,66,394,355),180,360,fill=(68,44,109,255))
-          dr.polygon([(153,448),(194,301),(335,301),(418,448)],fill=(42,33,81,255)); dr.arc((220,218,300,274),20,160,fill=(120,70,95,255),width=4)
-          im.convert('RGB').save(out/'lunari_character.jpg',quality=93,optimize=True)
-
-          # Worlds — moonlit fantasy citadel.
-          im=glow(card_canvas((7,11,35),(51,36,94)),(52,34,247,225),(221,205,255,125),22); dr=ImageDraw.Draw(im)
-          dr.ellipse((70,46,228,204),fill=(234,220,255,255)); dr.ellipse((127,22,262,171),fill=(12,15,43,255))
-          dr.polygon([(0,425),(104,274),(188,390),(283,230),(377,389),(455,286),(512,360),(512,512),(0,512)],fill=(25,29,73,255))
-          dr.rectangle((235,320,282,462),fill=(10,14,42,255)); dr.polygon([(224,326),(259,211),(295,326)],fill=(10,14,42,255))
-          im.convert('RGB').save(out/'lunari_world.jpg',quality=93,optimize=True)
-
-          # Chats — luminous glass messages.
-          im=glow(card_canvas(),(55,70,455,438)); dr=ImageDraw.Draw(im)
-          dr.rounded_rectangle((62,126,329,304),radius=62,fill=(115,82,205,240),outline=(228,214,255,220),width=4); dr.polygon([(112,288),(98,366),(183,302)],fill=(115,82,205,240))
-          dr.rounded_rectangle((214,235,452,385),radius=56,fill=(29,35,83,246),outline=(157,133,222,210),width=4); dr.polygon([(369,371),(426,431),(414,356)],fill=(29,35,83,246))
-          for x in (136,188,240): dr.ellipse((x,208,x+18,226),fill=(244,235,255,255))
-          im.convert('RGB').save(out/'lunari_chat.jpg',quality=93,optimize=True)
-
-          # Memory — enchanted grimoire.
-          im=glow(card_canvas((7,12,35),(43,30,73)),(116,60,432,453)); dr=ImageDraw.Draw(im)
-          dr.rounded_rectangle((128,88,396,434),radius=30,fill=(44,42,91,255),outline=(204,164,232,240),width=5); dr.rectangle((151,110,183,411),fill=(75,49,99,255)); dr.line((197,110,197,411),fill=(219,171,125,220),width=3)
-          dr.ellipse((223,165,340,282),fill=(227,210,255,255)); dr.ellipse((267,143,367,255),fill=(44,42,91,255))
-          im.convert('RGB').save(out/'lunari_memory.jpg',quality=93,optimize=True)
-
-          # Profiles — framed personal portrait.
-          im=glow(card_canvas((9,13,39),(50,32,82)),(72,48,438,456)); dr=ImageDraw.Draw(im)
-          dr.ellipse((130,76,382,397),fill=(37,33,77,255),outline=(215,190,245,240),width=5); dr.ellipse((201,126,319,276),fill=(205,162,181,255)); dr.pieslice((173,98,350,294),178,360,fill=(67,43,104,255)); dr.polygon([(155,416),(205,278),(318,278),(376,416)],fill=(93,69,148,255))
-          im.convert('RGB').save(out/'lunari_profiles.jpg',quality=93,optimize=True)
-
-          # Snapshots — magical camera / crescent lens.
-          im=glow(card_canvas((8,12,36),(47,31,81)),(66,76,452,453)); dr=ImageDraw.Draw(im)
-          dr.rounded_rectangle((87,160,434,379),radius=40,fill=(36,37,83,255),outline=(198,167,239,235),width=5); dr.rounded_rectangle((143,121,248,178),radius=20,fill=(52,48,102,255))
-          dr.ellipse((186,180,344,338),fill=(11,16,47,255),outline=(219,199,252,255),width=8); dr.ellipse((216,208,316,308),fill=(108,77,181,255)); dr.ellipse((251,194,332,286),fill=(14,18,51,255))
-          im.convert('RGB').save(out/'lunari_snapshots.jpg',quality=93,optimize=True)
-
-          expected={
-            'lunari_home_bg.jpg':(1080,2400),'lunari_launcher_icon.jpg':(512,512),
-            'lunari_character.jpg':(512,512),'lunari_world.jpg':(512,512),
-            'lunari_chat.jpg':(512,512),'lunari_memory.jpg':(512,512),
-            'lunari_profiles.jpg':(512,512),'lunari_snapshots.jpg':(512,512)
-          }
-          for name,size in expected.items():
-              with Image.open(out/name) as chk: chk.verify()
-              with Image.open(out/name) as chk:
-                  assert chk.size==size,(name,chk.size)
-                  print(name,chk.size)
-          PY
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_launcher_icon.webp
+          file app/src/main/res/drawable-nodpi/lunari_*.webp
 
       - name: Activate Lunari reference home
         shell: bash
@@ -195,22 +78,25 @@ jobs:
           s=p.read_text(encoding="utf-8")
           old="Route.Home -> HomeScreen(store, navigate)"
           new="Route.Home -> LunariHomeV2(store, navigate)"
-          if old in s: s=s.replace(old,new,1)
-          elif new not in s: raise SystemExit("Home route marker not found")
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit("Home route marker not found")
           p.write_text(s,encoding="utf-8")
           PY
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Verify APK signature
+      - name: Verify build artifact
         shell: bash
         run: |
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.3-apk
+          name: lunari-0.2.4-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
