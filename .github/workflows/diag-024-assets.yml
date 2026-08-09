@@ -1,0 +1,42 @@
+name: Diagnose 0.2.4 assets
+
+on:
+  push:
+    branches: [ "lunari-ui-refresh" ]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Diagnose exact asset payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, tarfile, io
+          print('files:')
+          for p in sorted(Path('assets/v024').glob('*')):
+              print(p.name, p.stat().st_size)
+          try:
+              texts=[]
+              for i in (1,2,3):
+                  p=Path(f'assets/v024/artwork.part{i}.b64')
+                  texts.append(''.join(p.read_text(encoding='utf-8').split()))
+              joined=''.join(texts)
+              print('archive base64 chars', len(joined), 'tail', joined[-16:])
+              raw=base64.b64decode(joined, validate=False)
+              print('archive bytes', len(raw), 'sha256', hashlib.sha256(raw).hexdigest(), 'head', raw[:8].hex())
+              with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tf:
+                  print('tar names', tf.getnames())
+          except Exception as e:
+              print('ARCHIVE_ERROR', type(e).__name__, repr(str(e)))
+          try:
+              p=Path('assets/v024/lunari_launcher_icon.webp.b64')
+              s=''.join(p.read_text(encoding='utf-8').split())
+              print('icon base64 chars', len(s), 'tail', s[-16:])
+              raw=base64.b64decode(s, validate=False)
+              print('icon bytes', len(raw), 'sha256', hashlib.sha256(raw).hexdigest(), 'head', raw[:16].hex())
+          except Exception as e:
+              print('ICON_ERROR', type(e).__name__, repr(str(e)))
+          PY
