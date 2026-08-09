@@ -55,143 +55,135 @@ jobs:
           fi
           keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA256:|Owner:" || true
 
-      - name: Prepare Lunari 0.2.3 artwork
+      - name: Generate Lunari 0.2.3 artwork
         shell: bash
         run: |
           python -m pip install --disable-pip-version-check pillow
           mkdir -p app/src/main/res/drawable-nodpi
-
-          cat assets/lunari_home_bg_v2.part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/lunari_home_source.bin
-          tr -d '\r\n' < assets/lunari_launcher_icon.b64 | base64 --decode > /tmp/lunari_icon_source.bin
-
           python - <<'PY'
-          from PIL import Image, ImageDraw, ImageFilter, ImageOps, ImageEnhance
+          from PIL import Image, ImageDraw, ImageFilter
           from pathlib import Path
-          import random
+          import random, math
 
           out = Path('app/src/main/res/drawable-nodpi')
           random.seed(203)
-          R = Image.Resampling.LANCZOS
 
-          def vertical_gradient(size, top, bottom):
-              w, h = size
-              im = Image.new('RGB', size)
-              d = ImageDraw.Draw(im)
+          def gradient(size, top, bottom):
+              w,h=size
+              im=Image.new('RGB',size)
+              d=ImageDraw.Draw(im)
               for y in range(h):
-                  t = y / max(1, h - 1)
-                  c = tuple(int(top[i] * (1 - t) + bottom[i] * t) for i in range(3))
-                  d.line((0, y, w, y), fill=c)
+                  t=y/max(1,h-1)
+                  c=tuple(int(top[i]*(1-t)+bottom[i]*t) for i in range(3))
+                  d.line((0,y,w,y),fill=c)
+              return im.convert('RGBA')
+
+          def stars(im, count, alpha=(90,220), margin=0):
+              d=ImageDraw.Draw(im)
+              w,h=im.size
+              for _ in range(count):
+                  x=random.randrange(margin,max(margin+1,w-margin)); y=random.randrange(margin,max(margin+1,h-margin))
+                  r=1 if random.random()<.88 else random.choice((2,3))
+                  a=random.randint(*alpha)
+                  d.ellipse((x-r,y-r,x+r,y+r),fill=(221,211,255,a))
               return im
 
-          # Approved generated moon/castle art becomes the actual full-screen background.
-          home_src = Image.open('/tmp/lunari_home_source.bin').convert('RGB')
-          bg = ImageOps.fit(home_src, (1080, 2400), method=R, centering=(0.50, 0.48))
-          bg = ImageEnhance.Contrast(bg).enhance(1.05)
-          bg = ImageEnhance.Color(bg).enhance(1.06).convert('RGBA')
+          def glow(im, box, color=(164,119,255,105), blur=28):
+              lay=Image.new('RGBA',im.size,(0,0,0,0)); d=ImageDraw.Draw(lay)
+              d.ellipse(box,fill=color); lay=lay.filter(ImageFilter.GaussianBlur(blur))
+              return Image.alpha_composite(im,lay)
 
-          # Keep the art visible but make lower cards readable.
-          shade = Image.new('RGBA', bg.size, (0, 0, 0, 0))
-          sd = ImageDraw.Draw(shade)
-          for y in range(bg.height):
-              t = max(0.0, min(1.0, (y - 740) / 1280))
-              sd.line((0, y, bg.width, y), fill=(3, 7, 23, int(20 + 188 * t)))
-          bg = Image.alpha_composite(bg, shade).convert('RGB')
-          bg.save(out / 'lunari_home_bg.jpg', quality=94, optimize=True, progressive=True)
+          # Full-screen lunar background: moon, violet nebula, distant citadel.
+          bg=gradient((1080,2400),(5,9,28),(18,12,42)); bg=stars(bg,420,(75,210))
+          neb=Image.new('RGBA',bg.size,(0,0,0,0)); nd=ImageDraw.Draw(neb)
+          nd.ellipse((-280,40,1280,1360),fill=(78,55,142,72)); nd.ellipse((300,240,1360,1500),fill=(108,64,157,42))
+          neb=neb.filter(ImageFilter.GaussianBlur(150)); bg=Image.alpha_composite(bg,neb)
+          moon=Image.new('RGBA',bg.size,(0,0,0,0)); md=ImageDraw.Draw(moon)
+          md.ellipse((255,100,825,670),fill=(236,227,255,255)); md.ellipse((430,20,935,585),fill=(10,13,39,255))
+          moon=moon.filter(ImageFilter.GaussianBlur(1.2)); bg=Image.alpha_composite(bg,moon)
+          d=ImageDraw.Draw(bg)
+          # horizon and castle silhouette
+          d.polygon([(0,1440),(130,1280),(250,1405),(390,1190),(535,1410),(700,1220),(860,1400),(980,1270),(1080,1380),(1080,2400),(0,2400)],fill=(7,10,28,245))
+          for x,w,h in [(250,90,330),(455,120,470),(675,85,300)]:
+              d.rectangle((x,1320-h,x+w,1480),fill=(5,8,23,255))
+              d.polygon([(x-12,1320-h),(x+w/2,1240-h),(x+w+12,1320-h)],fill=(5,8,23,255))
+          for x,y in [(278,1180),(492,1028),(520,1100),(702,1180)]:
+              d.rounded_rectangle((x,y,x+13,y+24),radius=4,fill=(242,188,132,210))
+          # lower readability veil
+          veil=Image.new('RGBA',bg.size,(0,0,0,0)); vd=ImageDraw.Draw(veil)
+          for y in range(900,2400):
+              t=(y-900)/1500
+              vd.line((0,y,1080,y),fill=(4,8,26,int(35+190*t)))
+          bg=Image.alpha_composite(bg,veil).convert('RGB')
+          bg.save(out/'lunari_home_bg.jpg',quality=94,optimize=True,progressive=True)
 
-          # Approved crescent/star source, padded before Android's adaptive mask.
-          icon_src = Image.open('/tmp/lunari_icon_source.bin').convert('RGB')
-          icon_src = ImageOps.fit(icon_src, (512, 512), method=R, centering=(0.5, 0.5))
-          icon_src = ImageEnhance.Contrast(icon_src).enhance(1.04)
-          icon_src.save(out / 'lunari_launcher_icon.jpg', quality=95, optimize=True)
+          # Launcher artwork intentionally has a generous safe margin.
+          icon=gradient((512,512),(7,12,34),(30,20,64)); icon=stars(icon,95,(100,220),35)
+          icon=glow(icon,(90,70,390,390),(174,131,255,105),34); idr=ImageDraw.Draw(icon)
+          idr.ellipse((126,104,360,338),fill=(234,224,255,255))
+          idr.ellipse((202,69,395,285),fill=(18,17,51,255))
+          # four-point star
+          cx,cy=355,315; r1,r2=38,7
+          pts=[]
+          for i in range(16):
+              a=-math.pi/2+i*math.pi/8; r=r1 if i%4==0 else (r2 if i%2 else 13)
+              pts.append((cx+math.cos(a)*r,cy+math.sin(a)*r))
+          idr.polygon(pts,fill=(247,235,255,255))
+          idr.ellipse((292,374,302,384),fill=(198,169,245,240))
+          icon.convert('RGB').save(out/'lunari_launcher_icon.jpg',quality=95,optimize=True)
 
-          SIZE = 512
-          def canvas(c1=(8, 12, 36), c2=(38, 27, 73)):
-              im = vertical_gradient((SIZE, SIZE), c1, c2).convert('RGBA')
-              dr = ImageDraw.Draw(im)
-              for _ in range(115):
-                  x = random.randrange(SIZE); y = random.randrange(SIZE)
-                  r = 1 if random.random() < .90 else 2
-                  a = random.randint(90, 205)
-                  dr.ellipse((x-r, y-r, x+r, y+r), fill=(190, 171, 235, a))
-              return im
+          SIZE=512
+          def card_canvas(a=(8,12,36),b=(43,29,79)):
+              im=gradient((SIZE,SIZE),a,b); stars(im,105,(80,205),18); return im
 
-          def glow_disc(im, box, color=(177, 133, 255, 112), blur=24):
-              layer = Image.new('RGBA', im.size, (0, 0, 0, 0))
-              ld = ImageDraw.Draw(layer)
-              ld.ellipse(box, fill=color)
-              layer = layer.filter(ImageFilter.GaussianBlur(blur))
-              return Image.alpha_composite(im, layer)
+          # Characters — moonlit portrait.
+          im=glow(card_canvas(),(80,45,430,440)); dr=ImageDraw.Draw(im)
+          dr.ellipse((173,105,355,327),fill=(211,169,184,255)); dr.pieslice((133,66,394,355),180,360,fill=(68,44,109,255))
+          dr.polygon([(153,448),(194,301),(335,301),(418,448)],fill=(42,33,81,255)); dr.arc((220,218,300,274),20,160,fill=(120,70,95,255),width=4)
+          im.convert('RGB').save(out/'lunari_character.jpg',quality=93,optimize=True)
 
-          # Character: luminous portrait silhouette, readable at 82dp circle size.
-          im = glow_disc(canvas(), (95, 55, 420, 430)); dr = ImageDraw.Draw(im)
-          dr.ellipse((174, 112, 356, 328), fill=(211, 169, 184, 255))
-          dr.pieslice((136, 72, 392, 354), 182, 360, fill=(71, 48, 111, 255))
-          dr.polygon([(168,174),(220,92),(336,116),(376,218),(338,190),(298,147),(244,174)], fill=(82,55,128,255))
-          dr.ellipse((218, 205, 230, 214), fill=(30, 23, 45, 255)); dr.ellipse((292, 203, 304, 212), fill=(30, 23, 45, 255))
-          dr.arc((238, 222, 294, 272), 20, 160, fill=(118, 67, 92, 255), width=4)
-          dr.polygon([(126, 450),(192, 310),(335, 310),(420, 450)], fill=(47, 37, 86, 255))
-          im.convert('RGB').save(out/'lunari_character.jpg', quality=93, optimize=True)
+          # Worlds — moonlit fantasy citadel.
+          im=glow(card_canvas((7,11,35),(51,36,94)),(52,34,247,225),(221,205,255,125),22); dr=ImageDraw.Draw(im)
+          dr.ellipse((70,46,228,204),fill=(234,220,255,255)); dr.ellipse((127,22,262,171),fill=(12,15,43,255))
+          dr.polygon([(0,425),(104,274),(188,390),(283,230),(377,389),(455,286),(512,360),(512,512),(0,512)],fill=(25,29,73,255))
+          dr.rectangle((235,320,282,462),fill=(10,14,42,255)); dr.polygon([(224,326),(259,211),(295,326)],fill=(10,14,42,255))
+          im.convert('RGB').save(out/'lunari_world.jpg',quality=93,optimize=True)
 
-          # World: moonlit citadel and mountains.
-          im = glow_disc(canvas((7,11,35),(51,36,94)), (55, 34, 244, 220), color=(221,205,255,120), blur=22); dr = ImageDraw.Draw(im)
-          dr.ellipse((72, 48, 225, 201), fill=(232, 218, 255, 255)); dr.ellipse((126, 25, 258, 171), fill=(12, 15, 43, 255))
-          dr.polygon([(0,420),(105,272),(190,389),(285,230),(376,386),(455,284),(512,360),(512,512),(0,512)], fill=(25,29,73,255))
-          dr.polygon([(164,454),(255,312),(350,454)], fill=(14,18,50,255)); dr.rectangle((238,320,281,460), fill=(12,16,45,255)); dr.polygon([(227,325),(260,210),(293,325)], fill=(11,15,43,255))
-          for x,y in [(250,356),(266,379),(253,408)]: dr.ellipse((x,y,x+7,y+11), fill=(241,180,119,230))
-          im.convert('RGB').save(out/'lunari_world.jpg', quality=93, optimize=True)
+          # Chats — luminous glass messages.
+          im=glow(card_canvas(),(55,70,455,438)); dr=ImageDraw.Draw(im)
+          dr.rounded_rectangle((62,126,329,304),radius=62,fill=(115,82,205,240),outline=(228,214,255,220),width=4); dr.polygon([(112,288),(98,366),(183,302)],fill=(115,82,205,240))
+          dr.rounded_rectangle((214,235,452,385),radius=56,fill=(29,35,83,246),outline=(157,133,222,210),width=4); dr.polygon([(369,371),(426,431),(414,356)],fill=(29,35,83,246))
+          for x in (136,188,240): dr.ellipse((x,208,x+18,226),fill=(244,235,255,255))
+          im.convert('RGB').save(out/'lunari_chat.jpg',quality=93,optimize=True)
 
-          # Chat: glass-like floating messages.
-          im = glow_disc(canvas((8,12,37),(43,31,87)), (64,80,440,422), blur=30); dr = ImageDraw.Draw(im)
-          dr.rounded_rectangle((68,132,330,306), radius=64, fill=(118,83,208,238), outline=(224,207,255,220), width=4)
-          dr.polygon([(119,290),(102,370),(186,305)], fill=(118,83,208,238))
-          dr.rounded_rectangle((215,235,451,383), radius=57, fill=(31,37,88,244), outline=(151,126,219,200), width=4)
-          dr.polygon([(370,370),(426,430),(414,357)], fill=(31,37,88,244))
-          for x in (140,190,240): dr.ellipse((x,210,x+18,228), fill=(242,232,255,255))
-          for x in (282,332,382): dr.ellipse((x,298,x+15,313), fill=(169,149,229,255))
-          im.convert('RGB').save(out/'lunari_chat.jpg', quality=93, optimize=True)
+          # Memory — enchanted grimoire.
+          im=glow(card_canvas((7,12,35),(43,30,73)),(116,60,432,453)); dr=ImageDraw.Draw(im)
+          dr.rounded_rectangle((128,88,396,434),radius=30,fill=(44,42,91,255),outline=(204,164,232,240),width=5); dr.rectangle((151,110,183,411),fill=(75,49,99,255)); dr.line((197,110,197,411),fill=(219,171,125,220),width=3)
+          dr.ellipse((223,165,340,282),fill=(227,210,255,255)); dr.ellipse((267,143,367,255),fill=(44,42,91,255))
+          im.convert('RGB').save(out/'lunari_memory.jpg',quality=93,optimize=True)
 
-          # Memory: enchanted grimoire and moon seal.
-          im = glow_disc(canvas((7,12,35),(43,30,73)), (125,68,420,445), blur=28); dr = ImageDraw.Draw(im)
-          dr.rounded_rectangle((132,92,392,430), radius=29, fill=(45,43,92,255), outline=(197,151,223,235), width=5)
-          dr.rectangle((151,112,183,410), fill=(75,49,99,255)); dr.line((196,112,196,410), fill=(213,161,117,220), width=3)
-          dr.ellipse((224,168,338,282), fill=(225,205,255,255)); dr.ellipse((266,146,363,254), fill=(45,43,92,255))
-          for x,y in [(218,135),(347,137),(221,335),(348,342),(288,111)]:
-              dr.line((x-9,y,x+9,y), fill=(221,181,247,230), width=3); dr.line((x,y-9,x,y+9), fill=(221,181,247,230), width=3)
-          im.convert('RGB').save(out/'lunari_memory.jpg', quality=93, optimize=True)
+          # Profiles — framed personal portrait.
+          im=glow(card_canvas((9,13,39),(50,32,82)),(72,48,438,456)); dr=ImageDraw.Draw(im)
+          dr.ellipse((130,76,382,397),fill=(37,33,77,255),outline=(215,190,245,240),width=5); dr.ellipse((201,126,319,276),fill=(205,162,181,255)); dr.pieslice((173,98,350,294),178,360,fill=(67,43,104,255)); dr.polygon([(155,416),(205,278),(318,278),(376,416)],fill=(93,69,148,255))
+          im.convert('RGB').save(out/'lunari_profiles.jpg',quality=93,optimize=True)
 
-          # Profiles: portrait medallion, visually related but distinct from Characters.
-          im = glow_disc(canvas((9,13,39),(50,32,82)), (78,54,430,446), color=(188,143,255,110), blur=28); dr = ImageDraw.Draw(im)
-          dr.ellipse((133,80,378,387), fill=(38,34,78,255), outline=(211,184,244,240), width=5)
-          dr.ellipse((204,130,316,270), fill=(205,162,180,255)); dr.pieslice((176,104,347,286), 178, 360, fill=(68,44,105,255))
-          dr.polygon([(160,410),(209,276),(315,276),(371,410)], fill=(95,71,151,255))
-          dr.arc((102,60,404,410), 90, 270, fill=(159,121,223,230), width=14)
-          im.convert('RGB').save(out/'lunari_profiles.jpg', quality=93, optimize=True)
+          # Snapshots — magical camera / crescent lens.
+          im=glow(card_canvas((8,12,36),(47,31,81)),(66,76,452,453)); dr=ImageDraw.Draw(im)
+          dr.rounded_rectangle((87,160,434,379),radius=40,fill=(36,37,83,255),outline=(198,167,239,235),width=5); dr.rounded_rectangle((143,121,248,178),radius=20,fill=(52,48,102,255))
+          dr.ellipse((186,180,344,338),fill=(11,16,47,255),outline=(219,199,252,255),width=8); dr.ellipse((216,208,316,308),fill=(108,77,181,255)); dr.ellipse((251,194,332,286),fill=(14,18,51,255))
+          im.convert('RGB').save(out/'lunari_snapshots.jpg',quality=93,optimize=True)
 
-          # Snapshots: magical camera with a crescent-lens glow.
-          im = glow_disc(canvas((8,12,36),(47,31,81)), (72,82,446,444), color=(175,132,255,115), blur=28); dr = ImageDraw.Draw(im)
-          dr.rounded_rectangle((91,164,430,374), radius=39, fill=(37,38,84,255), outline=(191,158,235,235), width=5)
-          dr.rounded_rectangle((145,126,245,180), radius=20, fill=(51,48,101,255))
-          dr.ellipse((190,184,340,334), fill=(12,17,48,255), outline=(216,193,252,255), width=8)
-          dr.ellipse((218,210,312,304), fill=(110,79,182,255)); dr.ellipse((250,198,327,284), fill=(15,19,52,255))
-          dr.ellipse((365,197,386,218), fill=(233,211,255,255))
-          im.convert('RGB').save(out/'lunari_snapshots.jpg', quality=93, optimize=True)
-
-          expected = {
-              'lunari_home_bg.jpg': (1080,2400),
-              'lunari_launcher_icon.jpg': (512,512),
-              'lunari_character.jpg': (512,512),
-              'lunari_world.jpg': (512,512),
-              'lunari_chat.jpg': (512,512),
-              'lunari_memory.jpg': (512,512),
-              'lunari_profiles.jpg': (512,512),
-              'lunari_snapshots.jpg': (512,512),
+          expected={
+            'lunari_home_bg.jpg':(1080,2400),'lunari_launcher_icon.jpg':(512,512),
+            'lunari_character.jpg':(512,512),'lunari_world.jpg':(512,512),
+            'lunari_chat.jpg':(512,512),'lunari_memory.jpg':(512,512),
+            'lunari_profiles.jpg':(512,512),'lunari_snapshots.jpg':(512,512)
           }
-          for name, size in expected.items():
-              with Image.open(out/name) as check:
-                  check.verify()
-              with Image.open(out/name) as check:
-                  assert check.size == size, (name, check.size)
-                  print(name, check.size, check.mode)
+          for name,size in expected.items():
+              with Image.open(out/name) as chk: chk.verify()
+              with Image.open(out/name) as chk:
+                  assert chk.size==size,(name,chk.size)
+                  print(name,chk.size)
           PY
 
       - name: Activate Lunari reference home
