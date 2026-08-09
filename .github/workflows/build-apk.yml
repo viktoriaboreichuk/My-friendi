@@ -54,6 +54,15 @@ jobs:
               -validity 10000
           fi
 
+      - name: Restore Lunari reference artwork
+        shell: bash
+        run: |
+          mkdir -p app/src/main/res/drawable-nodpi
+          base64 --decode assets/lunari_home_bg.b64 > app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          base64 --decode assets/lunari_launcher_icon.b64 > app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
+          file app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          file app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
+
       - name: Activate Lunari reference home
         shell: bash
         run: |
