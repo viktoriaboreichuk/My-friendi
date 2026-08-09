@@ -54,14 +54,135 @@ jobs:
               -validity 10000
           fi
 
-      - name: Restore Lunari reference artwork
+      - name: Generate validated Lunari artwork
         shell: bash
         run: |
+          python -m pip install --disable-pip-version-check pillow
           mkdir -p app/src/main/res/drawable-nodpi
-          base64 --decode assets/lunari_home_bg.b64 > app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          base64 --decode assets/lunari_home_bg.b64 > /tmp/lunari_home_source.jpg
           base64 --decode assets/lunari_launcher_icon.b64 > app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
-          file app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
-          file app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
+          python - <<'PY'
+          from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+          from pathlib import Path
+          import random, math
+
+          out = Path('app/src/main/res/drawable-nodpi')
+          src = Image.open('/tmp/lunari_home_source.jpg').convert('RGB')
+          W, H = 1080, 2400
+
+          # Deep lunar gradient, with the approved castle scene enlarged into the hero area.
+          bg = Image.new('RGB', (W, H))
+          px = bg.load()
+          top = (5, 9, 27)
+          bottom = (7, 10, 24)
+          for y in range(H):
+              t = y / (H - 1)
+              c = tuple(int(top[i] * (1-t) + bottom[i] * t) for i in range(3))
+              for x in range(W):
+                  px[x, y] = c
+
+          scene = ImageEnhance.Color(src).enhance(1.08)
+          scene = ImageEnhance.Contrast(scene).enhance(1.10)
+          scene_h = round(scene.height * W / scene.width)
+          scene = scene.resize((W, scene_h), Image.Resampling.LANCZOS)
+          scene = scene.filter(ImageFilter.UnsharpMask(radius=1.2, percent=120, threshold=3))
+          mask = Image.new('L', scene.size, 255)
+          md = ImageDraw.Draw(mask)
+          fade_start = int(scene_h * .62)
+          for y in range(fade_start, scene_h):
+              a = int(255 * (1 - (y-fade_start) / max(1, scene_h-fade_start)))
+              md.line((0, y, W, y), fill=max(0, a))
+          bg.paste(scene, (0, 40), mask)
+
+          # Fine star field; deterministic so every build is visually identical.
+          d = ImageDraw.Draw(bg)
+          random.seed(17)
+          for _ in range(320):
+              x = random.randrange(W)
+              y = random.randrange(30, 1500)
+              r = 1 if random.random() < .91 else 2
+              a = random.randint(135, 225)
+              d.ellipse((x-r, y-r, x+r, y+r), fill=(a, max(110, a-12), min(255, a+20)))
+
+          # Dark fade below the hero so glass cards stay readable.
+          shade = Image.new('RGBA', (W, H), (0,0,0,0))
+          sd = ImageDraw.Draw(shade)
+          for y in range(H):
+              t = max(0.0, min(1.0, (y-650)/1100))
+              sd.line((0,y,W,y), fill=(3,7,23,int(20+165*t)))
+          bg = Image.alpha_composite(bg.convert('RGBA'), shade).convert('RGB')
+          bg.save(out/'lunari_home_bg.jpg', quality=94, optimize=True, progressive=True)
+
+          # Compact illustrated card art matching the approved reference.
+          SIZE = 512
+          def canvas(c1=(10,15,42), c2=(44,35,92)):
+              im = Image.new('RGB',(SIZE,SIZE),c1); p=im.load()
+              for y in range(SIZE):
+                  t=y/(SIZE-1)
+                  c=tuple(int(c1[i]*(1-t)+c2[i]*t) for i in range(3))
+                  for x in range(SIZE): p[x,y]=c
+              dr=ImageDraw.Draw(im)
+              random.seed(70 + sum(c1))
+              for _ in range(85):
+                  x=random.randrange(SIZE); y=random.randrange(SIZE); r=random.choice([1,1,2])
+                  dr.ellipse((x-r,y-r,x+r,y+r), fill=(150,130,205))
+              return im, dr
+
+          # Character: stylised lavender portrait.
+          im, dr = canvas((9,15,42),(40,31,78))
+          dr.ellipse((128,68,392,420), fill=(38,31,72), outline=(203,174,244), width=4)
+          for off,col,wid in [(0,(132,104,196),34),(18,(164,132,220),24),(38,(195,166,237),16)]:
+              dr.arc((92+off,38,410-off,445), 95, 285, fill=col, width=wid)
+          dr.ellipse((208,138,338,330), fill=(205,164,174))
+          dr.polygon([(215,150),(282,100),(350,170),(318,198),(238,190)], fill=(115,84,171))
+          dr.ellipse((244,205,260,215), fill=(33,26,48)); dr.ellipse((296,203,312,213), fill=(33,26,48))
+          dr.arc((258,232,306,272), 15, 165, fill=(109,58,90), width=4)
+          im.save(out/'lunari_character.jpg', quality=92, optimize=True)
+
+          # World: moonlit mountain castle.
+          im, dr = canvas((9,14,42),(62,43,106))
+          dr.ellipse((78,58,210,190), fill=(218,198,255)); dr.ellipse((115,48,238,170), fill=(18,18,53))
+          for pts,col in [([(0,390),(125,260),(230,390)],(25,31,78)), ([(110,410),(270,210),(430,410)],(31,30,87)), ([(290,410),(420,285),(512,410)],(22,26,68))]: dr.polygon(pts,fill=col)
+          dr.polygon([(255,315),(282,178),(302,315)],fill=(13,16,44)); dr.rectangle((264,247,294,356),fill=(14,17,48)); dr.polygon([(215,356),(279,270),(345,356)],fill=(16,19,54))
+          for x,y in [(276,280),(290,294),(260,305)]: dr.ellipse((x,y,x+6,y+9),fill=(226,176,118))
+          im.save(out/'lunari_world.jpg', quality=92, optimize=True)
+
+          # Chat: layered magical speech bubbles.
+          im, dr = canvas((9,15,43),(31,28,82))
+          dr.rounded_rectangle((82,150,314,326), radius=70, fill=(105,76,196), outline=(210,188,255), width=4)
+          dr.polygon([(130,318),(118,382),(188,326)], fill=(105,76,196))
+          dr.rounded_rectangle((220,225,430,370), radius=62, fill=(34,39,92), outline=(129,104,205), width=4)
+          dr.polygon([(360,360),(405,410),(397,348)], fill=(34,39,92))
+          for x in [145,195,245]: dr.ellipse((x,226,x+20,246),fill=(230,219,255))
+          for x in [285,330,375]: dr.ellipse((x,286,x+16,302),fill=(145,129,218))
+          im.save(out/'lunari_chat.jpg', quality=92, optimize=True)
+
+          # Memory: ornate book with crescent.
+          im, dr = canvas((9,15,40),(37,29,75))
+          dr.rounded_rectangle((145,100,378,410), radius=26, fill=(37,39,92), outline=(185,141,211), width=5)
+          dr.rectangle((165,120,194,390), fill=(63,44,89)); dr.line((205,120,205,390), fill=(201,151,112), width=3)
+          dr.ellipse((235,176,330,270), fill=(221,196,255)); dr.ellipse((267,158,350,250), fill=(37,39,92))
+          for x,y in [(226,142),(333,144),(230,320),(330,330),(282,116)]:
+              dr.line((x-8,y,x+8,y), fill=(211,170,239), width=3); dr.line((x,y-8,x,y+8), fill=(211,170,239), width=3)
+          im.save(out/'lunari_memory.jpg', quality=92, optimize=True)
+
+          # Hard validation: fail CI before Gradle if any image is malformed.
+          expected = {
+              'lunari_home_bg.jpg': (1080,2400),
+              'lunari_launcher_icon.jpg': (512,512),
+              'lunari_character.jpg': (512,512),
+              'lunari_world.jpg': (512,512),
+              'lunari_chat.jpg': (512,512),
+              'lunari_memory.jpg': (512,512),
+          }
+          for name, size in expected.items():
+              p = out/name
+              with Image.open(p) as check:
+                  check.verify()
+              with Image.open(p) as check:
+                  assert check.size == size, (name, check.size)
+                  print(name, check.size, check.mode)
+          PY
 
       - name: Activate Lunari reference home
         shell: bash
@@ -72,9 +193,11 @@ jobs:
           s = p.read_text(encoding="utf-8")
           old = "Route.Home -> HomeScreen(store, navigate)"
           new = "Route.Home -> LunariHomeV2(store, navigate)"
-          if old not in s:
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
               raise SystemExit("Home route marker not found")
-          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          p.write_text(s, encoding="utf-8")
           PY
 
       - name: Build debug APK
@@ -83,6 +206,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.0-apk
+          name: lunari-0.2.2-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
