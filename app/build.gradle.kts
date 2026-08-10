@@ -18,6 +18,16 @@ android {
         versionName = "0.2.6"
     }
 
+    buildTypes {
+        getByName("debug") {
+            // Stage APKs are signed by an ephemeral CI debug key. Give them a
+            // separate package id so they can be installed beside the user's
+            // existing Lunari/Yakor build instead of conflicting with it.
+            applicationIdSuffix = ".stage026"
+            versionNameSuffix = "-stage"
+        }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
