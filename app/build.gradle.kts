@@ -20,11 +20,10 @@ android {
 
     buildTypes {
         getByName("debug") {
-            // Stage APKs are signed by an ephemeral CI debug key. Give them a
-            // separate package id so they can be installed beside the user's
-            // existing Lunari/Yakor build instead of conflicting with it.
-            applicationIdSuffix = ".stage026"
-            versionNameSuffix = "-stage"
+            // Build the canonical Lunari package without the ephemeral CI debug
+            // signature. The APK is signed after the CI build with the permanent
+            // Lunari key kept outside the repository.
+            signingConfig = null
         }
     }
 
