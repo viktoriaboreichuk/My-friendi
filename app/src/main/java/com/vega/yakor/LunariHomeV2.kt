@@ -1,6 +1,7 @@
 package com.vega.yakor
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,8 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -51,9 +55,9 @@ fun LunariHomeV2(
                 Brush.verticalGradient(
                     0f to Color.Transparent,
                     .30f to Color(0x12050A20),
-                    .52f to Color(0x4A071027),
-                    .74f to Color(0x9A050B1F),
-                    1f to DeepNight025.copy(alpha = .94f)
+                    .52f to Color(0x39071027),
+                    .74f to Color(0x76050B1F),
+                    1f to DeepNight025.copy(alpha = .88f)
                 )
             )
         )
@@ -76,21 +80,21 @@ fun LunariHomeV2(
                 contentPadding = PaddingValues(start = 17.dp, end = 17.dp, bottom = 22.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item { LunariHero025(onMagic = { navigate(Route.Settings, null) }) }
-                item { LunariCard025(R.drawable.lunari_character, "Персонажи", "твои герои, их характеры\nи истории") { navigate(Route.Characters, null) } }
-                item { LunariCard025(R.drawable.lunari_world, "Миры", "создай свои вселенные\nи локации") { navigate(Route.Worlds, null) } }
-                item { LunariCard025(R.drawable.lunari_chat, "Чаты", "общайся с персонажами\nи развивай истории") { navigate(Route.Chats, null) } }
-                item { LunariCard025(R.drawable.lunari_memory, "Память", "всё важное, что стоит\nсохранить") { navigate(Route.Memories, "") } }
-                item { LunariCard025(R.drawable.lunari_profiles, "Профили", "твоя роль, голос\nи образ в историях") { navigate(Route.Profiles, null) } }
-                item { LunariCard025(R.drawable.lunari_snapshots, "Снимки", "точки сохранения\nдля важных моментов") { navigate(Route.Snapshots, null) } }
+                item { LunariHero026(onMagic = { navigate(Route.Settings, null) }) }
+                item { LunariCard026(R.drawable.lunari_character, "Персонажи", "твои герои, их характеры\nи истории") { navigate(Route.Characters, null) } }
+                item { LunariCard026(R.drawable.lunari_world, "Миры", "создай свои вселенные\nи локации") { navigate(Route.Worlds, null) } }
+                item { LunariCard026(R.drawable.lunari_chat, "Чаты", "общайся с персонажами\nи развивай истории") { navigate(Route.Chats, null) } }
+                item { LunariCard026(R.drawable.lunari_memory, "Память", "всё важное, что стоит\nсохранить") { navigate(Route.Memories, "") } }
+                item { LunariCard026(R.drawable.lunari_profiles, "Профили", "твоя роль, голос\nи образ в историях") { navigate(Route.Profiles, null) } }
+                item { LunariCard026(R.drawable.lunari_snapshots, "Снимки", "точки сохранения\nдля важных моментов") { navigate(Route.Snapshots, null) } }
             }
         }
     }
 }
 
 @Composable
-private fun LunariHero025(onMagic: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(168.dp)) {
+private fun LunariHero026(onMagic: () -> Unit) {
+    Box(Modifier.fillMaxWidth().height(183.dp)) {
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -99,7 +103,7 @@ private fun LunariHero025(onMagic: () -> Unit) {
                 .shadow(7.dp, CircleShape)
                 .clickable(onClick = onMagic),
             shape = CircleShape,
-            color = Color(0x50101935),
+            color = Color(0x40101935),
             border = BorderStroke(
                 1.dp,
                 Brush.linearGradient(
@@ -125,41 +129,95 @@ private fun LunariHero025(onMagic: () -> Unit) {
                 )
             }
         }
+
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 5.dp),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    "Lunari",
+                    color = LavenderGlow025.copy(alpha = .22f),
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 54.sp,
+                    lineHeight = 56.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-0.25).sp,
+                    modifier = Modifier.offset(y = 1.dp)
+                )
                 Text(
                     "Lunari",
                     color = Ivory025,
                     fontFamily = FontFamily.Serif,
-                    fontSize = 53.sp,
-                    lineHeight = 55.sp,
-                    fontWeight = FontWeight.Normal,
-                    letterSpacing = (-0.7).sp
+                    fontSize = 54.sp,
+                    lineHeight = 56.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-0.25).sp
                 )
                 Text(
                     "✦",
                     color = Ivory025,
                     fontSize = 15.sp,
-                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 7.dp, y = (-3).dp)
+                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp)
                 )
             }
+
+            LunariDivider026()
+
             Text(
                 "твои персонажи, миры и истории",
                 color = Lavender025.copy(alpha = .94f),
                 fontSize = 14.sp,
                 letterSpacing = .16.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 3.dp)
             )
         }
     }
 }
 
 @Composable
-private fun LunariCard025(
+private fun LunariDivider026() {
+    Row(
+        modifier = Modifier.padding(top = 1.dp, bottom = 1.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Box(
+            Modifier
+                .width(72.dp)
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color.Transparent, Lavender025.copy(alpha = .58f))
+                    )
+                )
+        )
+        Text(
+            "☾",
+            color = Lavender025.copy(alpha = .90f),
+            fontSize = 15.sp,
+            lineHeight = 16.sp,
+            modifier = Modifier.padding(horizontal = 9.dp)
+        )
+        Box(
+            Modifier
+                .width(72.dp)
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Lavender025.copy(alpha = .58f), Color.Transparent)
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun LunariCard026(
     imageRes: Int,
     title: String,
     subtitle: String,
@@ -170,7 +228,7 @@ private fun LunariCard025(
         modifier = Modifier
             .fillMaxWidth()
             .height(107.dp)
-            .shadow(7.dp, cardShape, clip = false)
+            .shadow(8.dp, cardShape, clip = false)
             .clickable(onClick = onClick),
         shape = cardShape,
         color = Color.Transparent,
@@ -178,30 +236,52 @@ private fun LunariCard025(
             1.dp,
             Brush.linearGradient(
                 listOf(
-                    Ivory025.copy(alpha = .42f),
-                    Color(0xFFBDA7DE).copy(alpha = .23f),
-                    Color(0xFF6D5ACF).copy(alpha = .22f),
-                    Ivory025.copy(alpha = .18f)
+                    Ivory025.copy(alpha = .58f),
+                    Lavender025.copy(alpha = .38f),
+                    Color(0xFF8A70D8).copy(alpha = .28f),
+                    Ivory025.copy(alpha = .30f)
                 )
             )
         )
     ) {
         Box(
-            Modifier.fillMaxSize().background(
-                Brush.horizontalGradient(
-                    listOf(Color(0xD10A1430), Color(0xC80A132C), Color(0xBE080F24))
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color(0x560A1430),
+                            Color(0x420A132C),
+                            Color(0x2B080F24)
+                        )
+                    )
                 )
-            )
         ) {
             Box(
-                Modifier.fillMaxWidth().height(34.dp).background(
-                    Brush.verticalGradient(listOf(Color.White.copy(alpha = .035f), Color.Transparent))
-                )
+                Modifier
+                    .fillMaxWidth()
+                    .height(31.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = .065f), Color.Transparent)
+                        )
+                    )
             )
+
+            LunariCardOrnament026(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(155.dp)
+            )
+
             Row(
-                modifier = Modifier.fillMaxSize().padding(start = 11.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 11.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Keep the approved 0.2.5 circular artwork and its frame unchanged.
                 LunariArtworkFrame025(imageRes)
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
@@ -224,11 +304,85 @@ private fun LunariCard025(
                 Icon(
                     Icons.Outlined.ArrowForwardIos,
                     contentDescription = null,
-                    tint = Lavender025.copy(alpha = .90f),
+                    tint = Lavender025.copy(alpha = .92f),
                     modifier = Modifier.size(20.dp)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LunariCardOrnament026(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.padding(vertical = 5.dp, horizontal = 3.dp)) {
+        val vineColor = Lavender025.copy(alpha = .27f)
+        val softVine = LavenderGlow025.copy(alpha = .19f)
+        val stroke = 1.dp.toPx()
+
+        val main = Path().apply {
+            moveTo(size.width * .98f, size.height * .05f)
+            cubicTo(
+                size.width * .70f, size.height * .08f,
+                size.width * .84f, size.height * .42f,
+                size.width * .58f, size.height * .48f
+            )
+            cubicTo(
+                size.width * .82f, size.height * .54f,
+                size.width * .64f, size.height * .88f,
+                size.width * .98f, size.height * .95f
+            )
+        }
+        drawPath(main, vineColor, style = Stroke(width = stroke))
+
+        val curlTop = Path().apply {
+            moveTo(size.width * .88f, size.height * .17f)
+            cubicTo(
+                size.width * .72f, size.height * .09f,
+                size.width * .62f, size.height * .20f,
+                size.width * .74f, size.height * .28f
+            )
+        }
+        drawPath(curlTop, softVine, style = Stroke(width = stroke))
+
+        val curlBottom = Path().apply {
+            moveTo(size.width * .86f, size.height * .76f)
+            cubicTo(
+                size.width * .68f, size.height * .68f,
+                size.width * .58f, size.height * .81f,
+                size.width * .73f, size.height * .88f
+            )
+        }
+        drawPath(curlBottom, softVine, style = Stroke(width = stroke))
+
+        fun leaf(x: Float, y: Float, dx: Float, dy: Float) {
+            val center = Offset(size.width * x, size.height * y)
+            val tip = Offset(center.x + size.width * dx, center.y + size.height * dy)
+            val wing = Offset(center.x + size.width * dy * .38f, center.y - size.height * dx * .38f)
+            drawLine(vineColor, center, tip, strokeWidth = stroke)
+            drawLine(vineColor, center, wing, strokeWidth = stroke)
+        }
+
+        leaf(.84f, .20f, -.07f, -.04f)
+        leaf(.74f, .33f, -.06f, .02f)
+        leaf(.69f, .48f, -.07f, -.03f)
+        leaf(.72f, .62f, -.06f, .04f)
+        leaf(.82f, .78f, -.07f, .02f)
+        leaf(.91f, .88f, -.05f, -.04f)
+
+        drawCircle(Ivory025.copy(alpha = .44f), radius = 1.7.dp.toPx(), center = Offset(size.width * .96f, size.height * .07f))
+        drawCircle(LavenderGlow025.copy(alpha = .34f), radius = 1.2.dp.toPx(), center = Offset(size.width * .64f, size.height * .52f))
+        drawLine(
+            Ivory025.copy(alpha = .30f),
+            Offset(size.width * .90f, size.height * .05f),
+            Offset(size.width * .90f, size.height * .15f),
+            strokeWidth = .7.dp.toPx()
+        )
+        drawLine(
+            Ivory025.copy(alpha = .30f),
+            Offset(size.width * .86f, size.height * .10f),
+            Offset(size.width * .94f, size.height * .10f),
+            strokeWidth = .7.dp.toPx()
+        )
     }
 }
 
