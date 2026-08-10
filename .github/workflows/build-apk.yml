@@ -32,15 +32,31 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Prepare Lunari background resource
+      - name: Restore approved Lunari background
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
-          cp app/src/main/res/drawable-nodpi/lunari_home_bg.jpg \
-             app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          mkdir -p app/src/main/res/drawable-nodpi
+          cat \
+            assets/v025/final/bg.00.b64 \
+            assets/v025/final/tail.01.b64 \
+            assets/v025/final/tail.02.b64 \
+            assets/v025/final/tail.03.b64 \
+            assets/v025/final/tail.04.b64 \
+            assets/v025/final/tail.05.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
           test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
           file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          sha256sum app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+
+      - name: Upload background check
+        uses: actions/upload-artifact@v4
+        with:
+          name: lunari-background-check
+          path: app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          if-no-files-found: error
 
       - name: Verify Lunari artwork
         shell: bash
