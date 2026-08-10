@@ -68,8 +68,17 @@ jobs:
 
           # Exact wordmark + crescent/lines cropped from the user's approved reference.
           cat \
-            assets/v026/logo2.00.b64 \
-            assets/v026/logo2.01.b64 \
+            assets/v026/header.00.b64 \
+            assets/v026/header.01.b64 \
+            assets/v026/header.02.b64 \
+            assets/v026/header.03.b64 \
+            assets/v026/header.04.b64 \
+            assets/v026/header.05.b64 \
+            assets/v026/header.06.b64 \
+            assets/v026/header.07.b64 \
+            assets/v026/header.08.b64 \
+            assets/v026/header.09.b64 \
+            assets/v026/header.10.b64 \
             | tr -d '\r\n' \
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
