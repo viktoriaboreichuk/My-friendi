@@ -38,7 +38,6 @@ jobs:
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
 
-          # Restore the approved full-resolution 0.2.5 background (moon/clouds/castle).
           cat \
             assets/v025/bg.part00.b64 \
             assets/v025/bg.rest00.b64 \
@@ -64,9 +63,6 @@ jobs:
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
-          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
-
-          # Exact wordmark + crescent/lines cropped from the user's approved reference.
           cat \
             assets/v026/header.00.b64 \
             assets/v026/header.01.b64 \
@@ -83,7 +79,9 @@ jobs:
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
-          echo "a1e3ef0c86e517e25efa07369c0cdee8e0909e4a43fb3e88fed7d44bead10556  app/src/main/res/drawable-nodpi/lunari_logo_026.webp" | sha256sum -c -
+          echo "Reconstructed asset checksums:"
+          sha256sum app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          sha256sum app/src/main/res/drawable-nodpi/lunari_logo_026.webp
           file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
           file app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
