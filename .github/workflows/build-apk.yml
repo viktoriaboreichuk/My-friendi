@@ -3,7 +3,7 @@ name: Build Lunari APK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master", "lunari-ui-refresh" ]
+    branches: [ "main", "master", "lunari-ui-refresh", "lunari-026-stage" ]
   pull_request:
     branches: [ "main", "master" ]
 
@@ -32,7 +32,7 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore approved Lunari 0.2.5 background
+      - name: Restore approved Lunari background
         shell: bash
         run: |
           set -euo pipefail
@@ -65,7 +65,7 @@ jobs:
           echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
           file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
-      - name: Verify Lunari 0.2.5 artwork
+      - name: Verify Lunari artwork
         shell: bash
         run: |
           set -euo pipefail
@@ -107,6 +107,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.5-unsigned-base
+          name: lunari-0.2.6-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
