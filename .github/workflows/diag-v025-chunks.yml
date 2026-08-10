@@ -1,10 +1,9 @@
 name: Diagnose Lunari 0.2.5 chunks
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "lunari-025-assets" ]
-  pull_request:
-    branches: [ "main", "master" ]
 
 jobs:
   diagnose:
