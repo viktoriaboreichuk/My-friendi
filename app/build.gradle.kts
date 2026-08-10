@@ -14,15 +14,13 @@ android {
         applicationId = "com.vega.yakor"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.6"
+        versionCode = 9
+        versionName = "0.2.7"
     }
 
     buildTypes {
         getByName("debug") {
-            // Build the canonical Lunari package without the ephemeral CI debug
-            // signature. The APK is signed after the CI build with the permanent
-            // Lunari key kept outside the repository.
+            // Keep CI base APK unsigned; it is signed after the green build with the permanent Lunari key.
             signingConfig = null
         }
     }
