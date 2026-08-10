@@ -2,8 +2,8 @@ name: Build Lunari APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "lunari-ui-refresh" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
