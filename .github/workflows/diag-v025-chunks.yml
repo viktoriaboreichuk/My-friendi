@@ -3,6 +3,8 @@ name: Diagnose Lunari 0.2.5 chunks
 on:
   push:
     branches: [ "lunari-025-assets" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   diagnose:
