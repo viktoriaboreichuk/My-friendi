@@ -46,12 +46,29 @@ jobs:
           fi
           keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA256:|Owner:'
 
-      - name: Verify approved 51474 background resource
+      - name: Restore approved 51474 background
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+          cat \
+            assets/v025/bin/bg.part00 \
+            assets/v025/bin/bg.part01 \
+            assets/v025/bin/bg.part02 \
+            assets/v025/bin/bg.part03 \
+            assets/v025/bin/bg.part04 \
+            assets/v025/bin/bg.part05_06 \
+            assets/v025/bin/bg.part07 \
+            assets/v025/bin/bg.part08 \
+            assets/v025/bin/bg.part09 \
+            assets/v025/bin/bg.part10 \
+            assets/v025/bin/bg.part11 \
+            assets/v025/bin/bg.part12 \
+            assets/v025/bin/bg.part13 \
+            assets/v025/bin/bg.part14 \
+            assets/v025/bin/bg.part15 \
+            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
           BG=app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
-          test -s "$BG"
           test "$(stat -c '%s' "$BG")" = "77870"
           echo "2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  $BG" | sha256sum -c -
           python - <<'PY'
@@ -60,7 +77,7 @@ jobs:
           b = p.read_bytes()
           if b[:4] != b'RIFF' or b[8:12] != b'WEBP':
               raise SystemExit('BACKGROUND_NOT_WEBP')
-          print('approved background OK:', len(b), 'bytes')
+          print('approved 51474 background restored:', len(b), 'bytes')
           PY
 
       - name: Activate Lunari 0.2.5 UI
