@@ -32,104 +32,38 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore exact approved Lunari visual assets
+      - name: Use committed Lunari background blob
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BG="app/src/main/res/drawable-nodpi/lunari_home_bg.jpg"
+          test -s "$BG"
+
+          # This is the already-installed binary background blob that worked before.
+          # Do not reconstruct it from legacy base64 fragments again.
+          ACTUAL_BLOB="$(git rev-parse HEAD:$BG)"
+          EXPECTED_BLOB="d844e7f87519501af99119ff73a9336ab646b827"
+          echo "background blob: $ACTUAL_BLOB"
+          test "$ACTUAL_BLOB" = "$EXPECTED_BLOB"
+
+          # LunariHomeV2 already refers to lunari_home_bg_v025. Make that name a
+          # resource alias to the exact committed JPEG instead of generating a copy.
+          mkdir -p app/src/main/res/values
+          cat > app/src/main/res/values/lunari_bg_alias.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <item type="drawable" name="lunari_home_bg_v025">@drawable/lunari_home_bg</item>
+          </resources>
+          XML
+
+          file "$BG"
+
+      - name: Restore exact Lunari logo artwork
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
-
-          python - <<'PY'
-          from pathlib import Path
-          import base64, hashlib
-
-          EXPECTED = "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc"
-          OUT = Path("app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp")
-
-          old = [
-              "assets/v025/bg.part00.b64",
-              "assets/v025/bg.rest00.b64",
-              "assets/v025/bg.rest01.b64",
-              "assets/v025/bg.rest02.b64",
-              "assets/v025/bg.rest03.b64",
-              "assets/v025/bg.rest04.b64",
-              "assets/v025/bg.rest05.b64",
-              "assets/v025/bg.rest06.b64",
-              "assets/v025/bg.rest07.b64",
-              "assets/v025/bg.rest08.b64",
-              "assets/v025/bg.rest09.b64",
-              "assets/v025/bg.rest10.b64",
-              "assets/v025/bg.rest11.b64",
-              "assets/v025/bg.rest12.b64",
-              "assets/v025/bg.rest13.0.b64",
-              "assets/v025/bg.rest13.1.b64",
-              "assets/v025/bg.rest13.2.b64",
-              "assets/v025/bg.rest13.3.b64",
-              "assets/v025/bg.rest14.0.b64",
-              "assets/v025/bg.rest14.1.b64",
-          ]
-          final = [
-              "assets/v025/final/bg.00.b64",
-              "assets/v025/final/tail.01.b64",
-              "assets/v025/final/tail.02.b64",
-              "assets/v025/final/tail.03.b64",
-              "assets/v025/final/tail.04.b64",
-              "assets/v025/final/tail.05.b64",
-          ]
-          v2 = [f"assets/lunari_home_bg_v2.part{i}.b64" for i in range(1, 5)]
-          single = ["assets/lunari_home_bg.b64"]
-          repair = ["assets/v025/repair/bg.part00.0.b64"] + old[1:]
-
-          def text(path):
-              return "".join(Path(path).read_text(encoding="utf-8").split())
-
-          def padded(s):
-              return s + "=" * ((-len(s)) % 4)
-
-          def check(label, data):
-              h = hashlib.sha256(data).hexdigest()
-              print(f"candidate {label}: bytes={len(data)} sha256={h}")
-              if h == EXPECTED:
-                  OUT.write_bytes(data)
-                  print(f"MATCH: {label}")
-                  return True
-              return False
-
-          matched = False
-          groups = [("final", final), ("v2", v2), ("single", single), ("old", old), ("repair", repair)]
-          for name, files in groups:
-              if matched or not all(Path(f).exists() for f in files):
-                  continue
-              parts = [text(f) for f in files]
-
-              # A: normal contiguous base64 stream.
-              try:
-                  data = base64.b64decode("".join(parts), validate=True)
-                  matched = check(name + ":concat", data)
-              except Exception as exc:
-                  print(f"candidate {name}:concat decode error: {exc}")
-
-              # B: legacy fragments sometimes contain padding at internal joins.
-              if not matched:
-                  try:
-                      s = "".join(parts).replace("=", "")
-                      data = base64.b64decode(padded(s), validate=True)
-                      matched = check(name + ":strip-internal-padding", data)
-                  except Exception as exc:
-                      print(f"candidate {name}:strip-internal-padding decode error: {exc}")
-
-              # C: fragments may have been encoded as independent byte pieces.
-              if not matched:
-                  try:
-                      decoded = []
-                      for p in parts:
-                          decoded.append(base64.b64decode(padded(p), validate=False))
-                      matched = check(name + ":decode-parts", b"".join(decoded))
-                  except Exception as exc:
-                      print(f"candidate {name}:decode-parts decode error: {exc}")
-
-          if not matched:
-              raise SystemExit("Exact approved background could not be reconstructed from repository sources")
-          PY
 
           cat \
             assets/v026/header.00.b64 \
@@ -147,9 +81,7 @@ jobs:
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
-          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
           echo "a1e3ef0c86e517e25efa07369c0cdee8e0909e4a43fb3e88fed7d44bead10556  app/src/main/res/drawable-nodpi/lunari_logo_026.webp" | sha256sum -c -
-          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
           file app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
       - name: Upload visual source checks
@@ -157,7 +89,7 @@ jobs:
         with:
           name: lunari-visual-source-checks
           path: |
-            app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+            app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
             app/src/main/res/drawable-nodpi/lunari_logo_026.webp
           if-no-files-found: error
 
@@ -165,7 +97,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          test -s app/src/main/res/values/lunari_bg_alias.xml
           test -s app/src/main/res/drawable-nodpi/lunari_logo_026.webp
           test -s app/src/main/res/drawable-nodpi/lunari_character.webp
           test -s app/src/main/res/drawable-nodpi/lunari_world.webp
