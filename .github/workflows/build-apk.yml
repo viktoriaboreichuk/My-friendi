@@ -32,6 +32,39 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
+      - name: Restore approved Lunari 0.2.5 background
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+          cat \
+            assets/v025/bg.part00.b64 \
+            assets/v025/bg.rest00.b64 \
+            assets/v025/bg.rest01.b64 \
+            assets/v025/bg.rest02.b64 \
+            assets/v025/bg.rest03.b64 \
+            assets/v025/bg.rest04.b64 \
+            assets/v025/bg.rest05.b64 \
+            assets/v025/bg.rest06.b64 \
+            assets/v025/bg.rest07.b64 \
+            assets/v025/bg.rest08.b64 \
+            assets/v025/bg.rest09.b64 \
+            assets/v025/bg.rest10.b64 \
+            assets/v025/bg.rest11.b64 \
+            assets/v025/bg.rest12.b64 \
+            assets/v025/bg.rest13.0.b64 \
+            assets/v025/bg.rest13.1.b64 \
+            assets/v025/bg.rest13.2.b64 \
+            assets/v025/bg.rest13.3.b64 \
+            assets/v025/bg.rest14.0.b64 \
+            assets/v025/bg.rest14.1.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+
+          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
+          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+
       - name: Verify Lunari 0.2.5 artwork
         shell: bash
         run: |
