@@ -32,37 +32,71 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore approved Lunari background
+      - name: Restore approved Lunari background and exact logo reference
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
+
+          # Restore the approved full-resolution 0.2.5 background (moon/clouds/castle).
           cat \
-            assets/v025/final/bg.00.b64 \
-            assets/v025/final/tail.01.b64 \
-            assets/v025/final/tail.02.b64 \
-            assets/v025/final/tail.03.b64 \
-            assets/v025/final/tail.04.b64 \
-            assets/v025/final/tail.05.b64 \
+            assets/v025/bg.part00.b64 \
+            assets/v025/bg.rest00.b64 \
+            assets/v025/bg.rest01.b64 \
+            assets/v025/bg.rest02.b64 \
+            assets/v025/bg.rest03.b64 \
+            assets/v025/bg.rest04.b64 \
+            assets/v025/bg.rest05.b64 \
+            assets/v025/bg.rest06.b64 \
+            assets/v025/bg.rest07.b64 \
+            assets/v025/bg.rest08.b64 \
+            assets/v025/bg.rest09.b64 \
+            assets/v025/bg.rest10.b64 \
+            assets/v025/bg.rest11.b64 \
+            assets/v025/bg.rest12.b64 \
+            assets/v025/bg.rest13.0.b64 \
+            assets/v025/bg.rest13.1.b64 \
+            assets/v025/bg.rest13.2.b64 \
+            assets/v025/bg.rest13.3.b64 \
+            assets/v025/bg.rest14.0.b64 \
+            assets/v025/bg.rest14.1.b64 \
             | tr -d '\r\n' \
             | base64 --decode \
-            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
-          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
-          sha256sum app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
-      - name: Upload background check
+          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
+
+          # Exact wordmark + crescent/lines cropped from the user's approved reference.
+          cat \
+            assets/v026/logo.00.b64 \
+            assets/v026/logo.01.b64 \
+            assets/v026/logo.02.b64 \
+            assets/v026/logo.03.b64 \
+            assets/v026/logo.04.b64 \
+            assets/v026/logo.05.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+
+          echo "a1e3ef0c86e517e25efa07369c0cdee8e0909e4a43fb3e88fed7d44bead10556  app/src/main/res/drawable-nodpi/lunari_logo_026.webp" | sha256sum -c -
+          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          file app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+
+      - name: Upload visual source checks
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-background-check
-          path: app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          name: lunari-visual-source-checks
+          path: |
+            app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+            app/src/main/res/drawable-nodpi/lunari_logo_026.webp
           if-no-files-found: error
 
       - name: Verify Lunari artwork
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_logo_026.webp
           test -s app/src/main/res/drawable-nodpi/lunari_character.webp
           test -s app/src/main/res/drawable-nodpi/lunari_world.webp
           test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
