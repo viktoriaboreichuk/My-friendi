@@ -32,6 +32,64 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
+      - name: Validate visual asset chunks
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+
+          groups = {
+              "background": [
+                  "assets/v025/bg.part00.b64",
+                  "assets/v025/bg.rest00.b64",
+                  "assets/v025/bg.rest01.b64",
+                  "assets/v025/bg.rest02.b64",
+                  "assets/v025/bg.rest03.b64",
+                  "assets/v025/bg.rest04.b64",
+                  "assets/v025/bg.rest05.b64",
+                  "assets/v025/bg.rest06.b64",
+                  "assets/v025/bg.rest07.b64",
+                  "assets/v025/bg.rest08.b64",
+                  "assets/v025/bg.rest09.b64",
+                  "assets/v025/bg.rest10.b64",
+                  "assets/v025/bg.rest11.b64",
+                  "assets/v025/bg.rest12.b64",
+                  "assets/v025/bg.rest13.0.b64",
+                  "assets/v025/bg.rest13.1.b64",
+                  "assets/v025/bg.rest13.2.b64",
+                  "assets/v025/bg.rest13.3.b64",
+                  "assets/v025/bg.rest14.0.b64",
+                  "assets/v025/bg.rest14.1.b64",
+              ],
+              "header": [f"assets/v026/header.{i:02d}.b64" for i in range(11)],
+          }
+          alphabet = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
+          failed = False
+          for name, files in groups.items():
+              combined = ""
+              for filename in files:
+                  p = Path(filename)
+                  if not p.exists():
+                      print(f"MISSING {filename}")
+                      failed = True
+                      continue
+                  clean = "".join(p.read_text(encoding="utf-8").split())
+                  bad = sorted(set(clean) - alphabet)
+                  print(f"{filename}: len={len(clean)} bad={bad!r}")
+                  if bad:
+                      failed = True
+                  combined += clean
+              try:
+                  base64.b64decode(combined, validate=True)
+                  print(f"{name}: combined base64 OK len={len(combined)}")
+              except Exception as exc:
+                  print(f"{name}: COMBINED BASE64 BAD: {exc}")
+                  failed = True
+          if failed:
+              raise SystemExit(1)
+          PY
+
       - name: Restore approved Lunari background and exact logo reference
         shell: bash
         run: |
@@ -79,9 +137,8 @@ jobs:
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
-          echo "Reconstructed asset checksums:"
-          sha256sum app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
-          sha256sum app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
+          echo "a1e3ef0c86e517e25efa07369c0cdee8e0909e4a43fb3e88fed7d44bead10556  app/src/main/res/drawable-nodpi/lunari_logo_026.webp" | sha256sum -c -
           file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
           file app/src/main/res/drawable-nodpi/lunari_logo_026.webp
 
