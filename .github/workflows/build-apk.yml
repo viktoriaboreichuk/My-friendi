@@ -32,30 +32,21 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore approved Lunari background
+      - name: Prepare Lunari background resource
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/res/drawable-nodpi
-          cat \
-            assets/v025/final/bg.00.b64 \
-            assets/v025/final/tail.01.b64 \
-            assets/v025/final/tail.02.b64 \
-            assets/v025/final/tail.03.b64 \
-            assets/v025/final/tail.04.b64 \
-            assets/v025/final/tail.05.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode \
-            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
-
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
-          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          cp app/src/main/res/drawable-nodpi/lunari_home_bg.jpg \
+             app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
+          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
 
       - name: Verify Lunari artwork
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.jpg
           test -s app/src/main/res/drawable-nodpi/lunari_character.webp
           test -s app/src/main/res/drawable-nodpi/lunari_world.webp
           test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
