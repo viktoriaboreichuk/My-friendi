@@ -46,53 +46,22 @@ jobs:
           fi
           keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA256:|Owner:'
 
-      - name: Restore approved 51474 background
+      - name: Verify approved 51474 background resource
         shell: bash
         run: |
           set -euo pipefail
+          BG=app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test -s "$BG"
+          test "$(stat -c '%s' "$BG")" = "77870"
+          echo "2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  $BG" | sha256sum -c -
           python - <<'PY'
           from pathlib import Path
-          import base64, hashlib
-
-          root = Path('assets/v025/approved85')
-          expected = {
-              'bg.00.b64': ('15000', 'c6a5b00c93eef68355e8d0f580ac68eb5908464a100ec58f49fc1bdb3eeada38'),
-              'bg.01.b64': ('15000', 'a357ef0819fe20384cdc755e7fb777eefa148ed3af46abe84592f8d000850663'),
-              'bg.02.b64': ('15000', 'c966470833e9489cdc82fec14c2fe19bceb13499dca79e6bfd1531cc3e10e472'),
-              'bg.03.b64': ('15000', 'e4158e9e7097a7d82614cf19cb02defce21ed7122f3662e2cca17b677fee50fd'),
-              'bg.04.b64': ('15000', 'f0b1cb617c5d25cbdc820e3f9c4d364c0edef3bb56c2180033e2a089b6f08d5c'),
-              'bg.05.b64': ('15000', 'a0bd83b670ed9fb7548a0b6f3fa7586f67f9a77acf004acb681507e65ed222e4'),
-              'bg.06.b64': ('15000', '3659220b20b617bace0409cd246d5b7dbd512f2a2c43f8e023e95616b89f6d8a'),
-              'bg.07.0.b64': ('5000', '9cce37f65da6a6a8b88287e829cfb69f0e72fd93a7a8a881ee156dd1425f1391'),
-              'bg.07.1.b64': ('5000', '149f1d73a73e8ae0360c119635f599fd1b5c9fd451a42fe7e6dc25fcbec00c20'),
-              'bg.07.2.b64': ('5000', 'c81f2d0880e5ce28dd47d41012ad6f054c9aa7aec3bf6a5493e2753c751aa537'),
-              'bg.08.b64': ('15000', '9c0326335d6f33dfff9d0b1318fbf3a118ed33edd298e7f44c970d3abe5d8dbe'),
-              'bg.09.b64': ('15000', 'ef6bb8ec504dceb4537838828411bfa448f52188015c381d37f31b23c5820b83'),
-              'bg.10.b64': ('15000', 'e3c9aa4c2d2b52dcd0cab02d86bfbe4940f4a33dbfcbf0c2c16eff10fe34544b'),
-              'bg.11.b64': ('14688', 'b9f4a0a7794952e24c917155cf14e6263abba0d239434854d5e089dee87be5c2'),
-          }
-
-          decoded = bytearray()
-          for name, (size_s, sha) in expected.items():
-              p = root / name
-              raw = p.read_bytes()
-              got = hashlib.sha256(raw).hexdigest()
-              print(f'{name}: bytes={len(raw)} sha256={got}')
-              if len(raw) != int(size_s) or got != sha:
-                  raise SystemExit(f'CHUNK_MISMATCH: {name}')
-              decoded.extend(base64.b64decode(raw, validate=True))
-
-          target = Path('app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp')
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_bytes(decoded)
-          got = hashlib.sha256(decoded).hexdigest()
-          print(f'background bytes={len(decoded)} sha256={got}')
-          if got != '91038346ea51728911fc5ff99d5b817688089955e2c1a6866f8ef3c105550e12':
-              raise SystemExit('BACKGROUND_SHA_MISMATCH')
-          if decoded[:4] != b'RIFF' or decoded[8:12] != b'WEBP':
+          p = Path('app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp')
+          b = p.read_bytes()
+          if b[:4] != b'RIFF' or b[8:12] != b'WEBP':
               raise SystemExit('BACKGROUND_NOT_WEBP')
+          print('approved background OK:', len(b), 'bytes')
           PY
-          file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
       - name: Activate Lunari 0.2.5 UI
         shell: bash
@@ -102,27 +71,27 @@ jobs:
           from pathlib import Path
           import re
 
-          screens = Path("app/src/main/java/com/vega/yakor/Screens.kt")
-          s = screens.read_text(encoding="utf-8")
+          screens = Path('app/src/main/java/com/vega/yakor/Screens.kt')
+          s = screens.read_text(encoding='utf-8')
           s, n = re.subn(
-              r"Route\.Home\s*->\s*[A-Za-z0-9_]+\(store,\s*navigate\)",
-              "Route.Home -> LunariHomeV025(store, navigate)",
+              r'Route\.Home\s*->\s*[A-Za-z0-9_]+\(store,\s*navigate\)',
+              'Route.Home -> LunariHomeV025(store, navigate)',
               s,
               count=1,
           )
-          if n != 1 and "Route.Home -> LunariHomeV025(store, navigate)" not in s:
-              raise SystemExit("Could not activate LunariHomeV025")
-          screens.write_text(s, encoding="utf-8")
+          if n != 1 and 'Route.Home -> LunariHomeV025(store, navigate)' not in s:
+              raise SystemExit('Could not activate LunariHomeV025')
+          screens.write_text(s, encoding='utf-8')
 
-          home = Path("app/src/main/java/com/vega/yakor/LunariHomeV025.kt")
-          h = home.read_text(encoding="utf-8")
-          old = "R.drawable.lunari_home_bg"
-          new = "R.drawable.lunari_home_bg_v025"
+          home = Path('app/src/main/java/com/vega/yakor/LunariHomeV025.kt')
+          h = home.read_text(encoding='utf-8')
+          old = 'R.drawable.lunari_home_bg'
+          new = 'R.drawable.lunari_home_bg_v025'
           if old in h:
               h = h.replace(old, new, 1)
           elif new not in h:
-              raise SystemExit("0.2.5 background resource marker not found")
-          home.write_text(h, encoding="utf-8")
+              raise SystemExit('0.2.5 background resource marker not found')
+          home.write_text(h, encoding='utf-8')
           PY
 
       - name: Verify protected artwork and version
@@ -152,7 +121,10 @@ jobs:
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2
+          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
+          echo "$BADGING"
+          echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
+          echo "$BADGING" | grep -q "versionCode='7'"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           sha256sum "$APK"
           cp "$APK" /tmp/Lunari-0.2.5.apk
