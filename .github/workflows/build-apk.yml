@@ -32,94 +32,104 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Validate visual asset chunks
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import base64
-
-          groups = {
-              "background": [
-                  "assets/v025/bg.part00.b64",
-                  "assets/v025/bg.rest00.b64",
-                  "assets/v025/bg.rest01.b64",
-                  "assets/v025/bg.rest02.b64",
-                  "assets/v025/bg.rest03.b64",
-                  "assets/v025/bg.rest04.b64",
-                  "assets/v025/bg.rest05.b64",
-                  "assets/v025/bg.rest06.b64",
-                  "assets/v025/bg.rest07.b64",
-                  "assets/v025/bg.rest08.b64",
-                  "assets/v025/bg.rest09.b64",
-                  "assets/v025/bg.rest10.b64",
-                  "assets/v025/bg.rest11.b64",
-                  "assets/v025/bg.rest12.b64",
-                  "assets/v025/bg.rest13.0.b64",
-                  "assets/v025/bg.rest13.1.b64",
-                  "assets/v025/bg.rest13.2.b64",
-                  "assets/v025/bg.rest13.3.b64",
-                  "assets/v025/bg.rest14.0.b64",
-                  "assets/v025/bg.rest14.1.b64",
-              ],
-              "header": [f"assets/v026/header.{i:02d}.b64" for i in range(11)],
-          }
-          alphabet = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
-          failed = False
-          for name, files in groups.items():
-              combined = ""
-              for filename in files:
-                  p = Path(filename)
-                  if not p.exists():
-                      print(f"MISSING {filename}")
-                      failed = True
-                      continue
-                  clean = "".join(p.read_text(encoding="utf-8").split())
-                  bad = sorted(set(clean) - alphabet)
-                  print(f"{filename}: len={len(clean)} bad={bad!r}")
-                  if bad:
-                      failed = True
-                  combined += clean
-              try:
-                  base64.b64decode(combined, validate=True)
-                  print(f"{name}: combined base64 OK len={len(combined)}")
-              except Exception as exc:
-                  print(f"{name}: COMBINED BASE64 BAD: {exc}")
-                  failed = True
-          if failed:
-              raise SystemExit(1)
-          PY
-
-      - name: Restore approved Lunari background and exact logo reference
+      - name: Restore exact approved Lunari visual assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
 
-          cat \
-            assets/v025/bg.part00.b64 \
-            assets/v025/bg.rest00.b64 \
-            assets/v025/bg.rest01.b64 \
-            assets/v025/bg.rest02.b64 \
-            assets/v025/bg.rest03.b64 \
-            assets/v025/bg.rest04.b64 \
-            assets/v025/bg.rest05.b64 \
-            assets/v025/bg.rest06.b64 \
-            assets/v025/bg.rest07.b64 \
-            assets/v025/bg.rest08.b64 \
-            assets/v025/bg.rest09.b64 \
-            assets/v025/bg.rest10.b64 \
-            assets/v025/bg.rest11.b64 \
-            assets/v025/bg.rest12.b64 \
-            assets/v025/bg.rest13.0.b64 \
-            assets/v025/bg.rest13.1.b64 \
-            assets/v025/bg.rest13.2.b64 \
-            assets/v025/bg.rest13.3.b64 \
-            assets/v025/bg.rest14.0.b64 \
-            assets/v025/bg.rest14.1.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode \
-            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+
+          EXPECTED = "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc"
+          OUT = Path("app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp")
+
+          old = [
+              "assets/v025/bg.part00.b64",
+              "assets/v025/bg.rest00.b64",
+              "assets/v025/bg.rest01.b64",
+              "assets/v025/bg.rest02.b64",
+              "assets/v025/bg.rest03.b64",
+              "assets/v025/bg.rest04.b64",
+              "assets/v025/bg.rest05.b64",
+              "assets/v025/bg.rest06.b64",
+              "assets/v025/bg.rest07.b64",
+              "assets/v025/bg.rest08.b64",
+              "assets/v025/bg.rest09.b64",
+              "assets/v025/bg.rest10.b64",
+              "assets/v025/bg.rest11.b64",
+              "assets/v025/bg.rest12.b64",
+              "assets/v025/bg.rest13.0.b64",
+              "assets/v025/bg.rest13.1.b64",
+              "assets/v025/bg.rest13.2.b64",
+              "assets/v025/bg.rest13.3.b64",
+              "assets/v025/bg.rest14.0.b64",
+              "assets/v025/bg.rest14.1.b64",
+          ]
+          final = [
+              "assets/v025/final/bg.00.b64",
+              "assets/v025/final/tail.01.b64",
+              "assets/v025/final/tail.02.b64",
+              "assets/v025/final/tail.03.b64",
+              "assets/v025/final/tail.04.b64",
+              "assets/v025/final/tail.05.b64",
+          ]
+          v2 = [f"assets/lunari_home_bg_v2.part{i}.b64" for i in range(1, 5)]
+          single = ["assets/lunari_home_bg.b64"]
+          repair = ["assets/v025/repair/bg.part00.0.b64"] + old[1:]
+
+          def text(path):
+              return "".join(Path(path).read_text(encoding="utf-8").split())
+
+          def padded(s):
+              return s + "=" * ((-len(s)) % 4)
+
+          def check(label, data):
+              h = hashlib.sha256(data).hexdigest()
+              print(f"candidate {label}: bytes={len(data)} sha256={h}")
+              if h == EXPECTED:
+                  OUT.write_bytes(data)
+                  print(f"MATCH: {label}")
+                  return True
+              return False
+
+          matched = False
+          groups = [("final", final), ("v2", v2), ("single", single), ("old", old), ("repair", repair)]
+          for name, files in groups:
+              if matched or not all(Path(f).exists() for f in files):
+                  continue
+              parts = [text(f) for f in files]
+
+              # A: normal contiguous base64 stream.
+              try:
+                  data = base64.b64decode("".join(parts), validate=True)
+                  matched = check(name + ":concat", data)
+              except Exception as exc:
+                  print(f"candidate {name}:concat decode error: {exc}")
+
+              # B: legacy fragments sometimes contain padding at internal joins.
+              if not matched:
+                  try:
+                      s = "".join(parts).replace("=", "")
+                      data = base64.b64decode(padded(s), validate=True)
+                      matched = check(name + ":strip-internal-padding", data)
+                  except Exception as exc:
+                      print(f"candidate {name}:strip-internal-padding decode error: {exc}")
+
+              # C: fragments may have been encoded as independent byte pieces.
+              if not matched:
+                  try:
+                      decoded = []
+                      for p in parts:
+                          decoded.append(base64.b64decode(padded(p), validate=False))
+                      matched = check(name + ":decode-parts", b"".join(decoded))
+                  except Exception as exc:
+                      print(f"candidate {name}:decode-parts decode error: {exc}")
+
+          if not matched:
+              raise SystemExit("Exact approved background could not be reconstructed from repository sources")
+          PY
 
           cat \
             assets/v026/header.00.b64 \
