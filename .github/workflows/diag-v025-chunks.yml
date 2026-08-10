@@ -1,0 +1,40 @@
+name: Diagnose Lunari 0.2.5 chunks
+
+on:
+  push:
+    branches: [ "lunari-025-assets" ]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Print chunk hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            assets/v025/bg.part00.b64 \
+            assets/v025/bg.rest00.b64 \
+            assets/v025/bg.rest01.b64 \
+            assets/v025/bg.rest02.b64 \
+            assets/v025/bg.rest03.b64 \
+            assets/v025/bg.rest04.b64 \
+            assets/v025/bg.rest05.b64 \
+            assets/v025/bg.rest06.b64 \
+            assets/v025/bg.rest07.b64 \
+            assets/v025/bg.rest08.b64 \
+            assets/v025/bg.rest09.b64 \
+            assets/v025/bg.rest10.b64 \
+            assets/v025/bg.rest11.b64 \
+            assets/v025/bg.rest12.b64 \
+            assets/v025/bg.rest13.0.b64 \
+            assets/v025/bg.rest13.1.b64 \
+            assets/v025/bg.rest13.2.b64 \
+            assets/v025/bg.rest13.3.b64 \
+            assets/v025/bg.rest14.0.b64 \
+            assets/v025/bg.rest14.1.b64; do
+            clean=$(tr -d '\r\n' < "$f")
+            printf '%s len=%s sha256=' "$f" "${#clean}"
+            printf '%s' "$clean" | sha256sum | awk '{print $1}'
+          done
