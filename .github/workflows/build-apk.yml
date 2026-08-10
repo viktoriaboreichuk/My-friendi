@@ -3,9 +3,7 @@ name: Build Lunari APK
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master", "lunari-ui-refresh" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "lunari-ui-refresh" ]
 
 jobs:
   build:
@@ -32,81 +30,118 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore approved Lunari 0.2.5 background
+      - name: Restore stable Lunari signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lunari-stable-debug-key-v1
+
+      - name: Require update-compatible signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s "$HOME/.android/debug.keystore" ]; then
+            echo "Stable Lunari signing key cache is missing. Refusing to build an incompatible update."
+            exit 1
+          fi
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA256:|Owner:'
+
+      - name: Restore approved 51474 background
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
+          for n in 00 01 02 03 04 05 06 07 08 09 10 11; do
+            test -s "assets/v025/approved85/bg.${n}.b64"
+          done
           cat \
-            assets/v025/bg.part00.b64 \
-            assets/v025/bg.rest00.b64 \
-            assets/v025/bg.rest01.b64 \
-            assets/v025/bg.rest02.b64 \
-            assets/v025/bg.rest03.b64 \
-            assets/v025/bg.rest04.b64 \
-            assets/v025/bg.rest05.b64 \
-            assets/v025/bg.rest06.b64 \
-            assets/v025/bg.rest07.b64 \
-            assets/v025/bg.rest08.b64 \
-            assets/v025/bg.rest09.b64 \
-            assets/v025/bg.rest10.b64 \
-            assets/v025/bg.rest11.b64 \
-            assets/v025/bg.rest12.b64 \
-            assets/v025/bg.rest13.0.b64 \
-            assets/v025/bg.rest13.1.b64 \
-            assets/v025/bg.rest13.2.b64 \
-            assets/v025/bg.rest13.3.b64 \
-            assets/v025/bg.rest14.0.b64 \
-            assets/v025/bg.rest14.1.b64 \
+            assets/v025/approved85/bg.00.b64 \
+            assets/v025/approved85/bg.01.b64 \
+            assets/v025/approved85/bg.02.b64 \
+            assets/v025/approved85/bg.03.b64 \
+            assets/v025/approved85/bg.04.b64 \
+            assets/v025/approved85/bg.05.b64 \
+            assets/v025/approved85/bg.06.b64 \
+            assets/v025/approved85/bg.07.b64 \
+            assets/v025/approved85/bg.08.b64 \
+            assets/v025/approved85/bg.09.b64 \
+            assets/v025/approved85/bg.10.b64 \
+            assets/v025/approved85/bg.11.b64 \
             | tr -d '\r\n' \
             | base64 --decode \
             > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
-          echo "a6d3c0eacabaabe8f1bb23a1d1ef87254790b2413686ffc8f34b9a37071691dc  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
+          echo "91038346ea51728911fc5ff99d5b817688089955e2c1a6866f8ef3c105550e12  app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp" | sha256sum -c -
+          test "$(head -c 4 app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp)" = "RIFF"
+          test "$(dd if=app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp bs=1 skip=8 count=4 status=none)" = "WEBP"
           file app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
 
-      - name: Verify Lunari 0.2.5 artwork
+      - name: Activate Lunari 0.2.5 UI
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
-
-      - name: Activate Lunari home
-        shell: bash
-        run: |
           python - <<'PY'
           from pathlib import Path
-          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
-          s = p.read_text(encoding="utf-8")
-          old = "Route.Home -> HomeScreen(store, navigate)"
-          new = "Route.Home -> LunariHomeV2(store, navigate)"
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif new not in s:
-              raise SystemExit("Home route marker not found")
-          p.write_text(s, encoding="utf-8")
+          import re
+
+          screens = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = screens.read_text(encoding="utf-8")
+          s, n = re.subn(
+              r"Route\.Home\s*->\s*[A-Za-z0-9_]+\(store,\s*navigate\)",
+              "Route.Home -> LunariHomeV025(store, navigate)",
+              s,
+              count=1,
+          )
+          if n != 1 and "Route.Home -> LunariHomeV025(store, navigate)" not in s:
+              raise SystemExit("Could not activate LunariHomeV025")
+          screens.write_text(s, encoding="utf-8")
+
+          home = Path("app/src/main/java/com/vega/yakor/LunariHomeV025.kt")
+          h = home.read_text(encoding="utf-8")
+          old = "R.drawable.lunari_home_bg"
+          new = "R.drawable.lunari_home_bg_v025"
+          if old in h:
+              h = h.replace(old, new, 1)
+          elif new not in h:
+              raise SystemExit("0.2.5 background resource marker not found")
+          home.write_text(h, encoding="utf-8")
           PY
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
-
-      - name: Verify APK exists
+      - name: Verify protected artwork and version
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/build/outputs/apk/debug/app-debug.apk
-          sha256sum app/build/outputs/apk/debug/app-debug.apk
+          grep -q 'versionCode = 7' app/build.gradle.kts
+          grep -q 'versionName = "0.2.5"' app/build.gradle.kts
+          grep -q 'lunari_home_bg_v025' app/src/main/java/com/vega/yakor/LunariHomeV025.kt
+          for f in \
+            lunari_character.webp \
+            lunari_world.webp \
+            lunari_chat.webp \
+            lunari_memory.webp \
+            lunari_profiles.webp \
+            lunari_snapshots.webp \
+            lunari_launcher_icon.jpg; do
+            test -s "app/src/main/res/drawable-nodpi/$f"
+          done
 
-      - name: Upload APK
+      - name: Build 0.2.5 APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK, package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          sha256sum "$APK"
+          cp "$APK" /tmp/Lunari-0.2.5.apk
+
+      - name: Upload Lunari 0.2.5 APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.5-unsigned-base
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: lunari-0.2.5-apk
+          path: /tmp/Lunari-0.2.5.apk
           if-no-files-found: error
