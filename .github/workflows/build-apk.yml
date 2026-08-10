@@ -37,19 +37,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
-
-          cat \
-            assets/v027/ui_assets.part000.b64 \
-            assets/v027/ui_assets.part001.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode \
-            > /tmp/lunari027-ui.zip
-
-          # Validate the archive itself, then validate every required approved asset.
-          # The bundle was recompressed during staging, so a historical archive-level
-          # SHA is not authoritative; the contained files are the source of truth.
-          unzip -t /tmp/lunari027-ui.zip
-          unzip -o /tmp/lunari027-ui.zip -d app/src/main/res/drawable-nodpi
+          test -s assets/v027/ui_assets.zip
+          unzip -t assets/v027/ui_assets.zip
+          unzip -o assets/v027/ui_assets.zip -d app/src/main/res/drawable-nodpi
 
           for f in \
             lunari_logo_027.webp \
