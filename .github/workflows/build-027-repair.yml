@@ -2,6 +2,10 @@ name: Build Lunari 0.2.7 Recovery
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "lunari-027-assets" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -28,8 +32,80 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore approved Lunari 0.2.7 UI assets
+      - name: Restore and verify approved Lunari 0.2.7 UI assets
         shell: bash
         run: |
-          echo "Recovery workflow is temporarily paused while verified assets are staged."
-          exit 1
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+
+          echo "11feb74f407979c20a192797c44315d36047af8ebde5d17131a796f866ee4a86  assets/v027/verified/overlays_a.zip" | sha256sum -c -
+          echo "6322867eaa9515854c775030dbdc4919f9c8da7d182b77cc3f48f01e968969fa  assets/v027/verified/overlays_b.zip" | sha256sum -c -
+
+          unzip -t assets/v027/verified/overlays_a.zip
+          unzip -t assets/v027/verified/overlays_b.zip
+          unzip -o assets/v027/verified/overlays_a.zip -d app/src/main/res/drawable-nodpi
+          unzip -o assets/v027/verified/overlays_b.zip -d app/src/main/res/drawable-nodpi
+
+          cat > /tmp/lunari027.sha256 <<'EOF'
+          d60477696f259cd90d16c97a1aa485d9cf367a6005a515e211225e8e9a8fff00  app/src/main/res/drawable-nodpi/lunari_logo_027.webp
+          ed385791bdeacd2fd448f96f3449406f5c82265f1b13995c1b56888b35f89a5c  app/src/main/res/drawable-nodpi/lunari_home_bg_027.webp
+          2ea58bd6658182acac6af68d8c3e9779856aeecf02e4f58771d84fd096ddacbe  app/src/main/res/drawable-nodpi/lunari_card_overlay_01.webp
+          2790a3536af0b7e8d236123f0ff340153c04a9e1fd24fbe1e20fc3504c56a6f1  app/src/main/res/drawable-nodpi/lunari_card_overlay_02.webp
+          fe7a6b3e337a74525db5d84c4c60a03843f97f89ca097825a819f880e84eb541  app/src/main/res/drawable-nodpi/lunari_card_overlay_03.webp
+          5991bab5a439af2285bea111b25cf2fcf5789994b0613ca224d02148f929e602  app/src/main/res/drawable-nodpi/lunari_card_overlay_04.webp
+          ce9a35b36f7c883739041217eccf573ad270fd41aad21a53ff3d99b6c0f7ea4a  app/src/main/res/drawable-nodpi/lunari_card_overlay_05.webp
+          fe64552c4b6eab3123fb88957e3ef60777b0ac50cebbdbdb4c681b6ce2175b65  app/src/main/res/drawable-nodpi/lunari_card_overlay_06.webp
+          EOF
+          sha256sum -c /tmp/lunari027.sha256
+
+      - name: Verify category artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            lunari_character.webp \
+            lunari_world.webp \
+            lunari_chat.webp \
+            lunari_memory.webp \
+            lunari_profiles.webp \
+            lunari_snapshots.webp; do
+            test -s "app/src/main/res/drawable-nodpi/$f"
+          done
+
+      - name: Activate Lunari home
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = p.read_text(encoding="utf-8")
+          old = "Route.Home -> HomeScreen(store, navigate)"
+          new = "Route.Home -> LunariHomeV2(store, navigate)"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("Home route marker not found")
+          p.write_text(s, encoding="utf-8")
+          PY
+
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          test -s "$APK"
+          cp "$APK" Lunari-0.2.7-STAGE.apk
+          ls -lh Lunari-0.2.7-STAGE.apk
+          sha256sum Lunari-0.2.7-STAGE.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lunari-0.2.7-STAGE
+          path: Lunari-0.2.7-STAGE.apk
+          if-no-files-found: error
