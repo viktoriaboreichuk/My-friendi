@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "lunari-027-assets" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
