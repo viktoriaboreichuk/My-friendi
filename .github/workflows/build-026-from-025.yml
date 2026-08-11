@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.7 from 0.2.6
+name: Build Lunari 0.2.7.1 from 0.2.7
 
 on:
   workflow_dispatch:
@@ -87,13 +87,14 @@ jobs:
           test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
           test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
 
-      - name: Verify version and activate Lunari home
+      - name: Verify version and exact 0.2.7.1 layout fix
         shell: bash
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 9' app/build.gradle.kts
-          grep -F 'versionName = "0.2.7"' app/build.gradle.kts
+          grep -F 'versionCode = 10' app/build.gradle.kts
+          grep -F 'versionName = "0.2.7.1"' app/build.gradle.kts
+          grep -F 'graphicsLayer(scaleX = 1.061f, scaleY = 1.34f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
           python - <<'PY'
           from pathlib import Path
           p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
@@ -128,6 +129,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.7-unsigned-base
+          name: lunari-0.2.7.1-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
