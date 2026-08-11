@@ -1,8 +1,10 @@
-name: Build Yakor APK
+name: Build Lunari APK
 
 on:
   workflow_dispatch:
   push:
+    branches: [ "main", "master", "lunari-ui-refresh", "lunari-026-stage" ]
+  pull_request:
     branches: [ "main", "master" ]
 
 jobs:
@@ -30,12 +32,128 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
+      - name: Use committed Lunari background blob
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BG="app/src/main/res/drawable-nodpi/lunari_home_bg.jpg"
+          test -s "$BG"
+
+          # This is the already-installed binary background blob that worked before.
+          # Do not reconstruct it from legacy base64 fragments again.
+          ACTUAL_BLOB="$(git rev-parse HEAD:$BG)"
+          EXPECTED_BLOB="d844e7f87519501af99119ff73a9336ab646b827"
+          echo "background blob: $ACTUAL_BLOB"
+          test "$ACTUAL_BLOB" = "$EXPECTED_BLOB"
+
+          # LunariHomeV2 already refers to lunari_home_bg_v025. Make that name a
+          # resource alias to the exact committed JPEG instead of generating a copy.
+          mkdir -p app/src/main/res/values
+          cat > app/src/main/res/values/lunari_bg_alias.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <item type="drawable" name="lunari_home_bg_v025">@drawable/lunari_home_bg</item>
+          </resources>
+          XML
+
+          file "$BG"
+
+      - name: Restore exact Lunari logo artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+
+          cat \
+            assets/v026/header.00.b64 \
+            assets/v026/header.01.b64 \
+            assets/v026/header.02.b64 \
+            assets/v026/header.03.b64 \
+            assets/v026/header.04.b64 \
+            assets/v026/header.05.b64 \
+            assets/v026/header.06.b64 \
+            assets/v026/header.07.b64 \
+            assets/v026/header.08.b64 \
+            assets/v026/header.09.b64 \
+            assets/v026/header.10.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+
+          echo "a1e3ef0c86e517e25efa07369c0cdee8e0909e4a43fb3e88fed7d44bead10556  app/src/main/res/drawable-nodpi/lunari_logo_026.webp" | sha256sum -c -
+          file app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+
+      - name: Upload visual source checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: lunari-visual-source-checks
+          path: |
+            app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+            app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+          if-no-files-found: error
+
+      - name: Verify Lunari artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/res/drawable-nodpi/lunari_home_bg.jpg
+          test -s app/src/main/res/values/lunari_bg_alias.xml
+          test -s app/src/main/res/drawable-nodpi/lunari_logo_026.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_launcher_icon.jpg
+
+      - name: Activate Lunari home
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = p.read_text(encoding="utf-8")
+          old = "Route.Home -> HomeScreen(store, navigate)"
+          new = "Route.Home -> LunariHomeV2(store, navigate)"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("Home route marker not found")
+          p.write_text(s, encoding="utf-8")
+          PY
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/apk/debug/app-debug-unsigned.apk
+          sha256sum app/build/outputs/apk/debug/app-debug-unsigned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yakor-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: lunari-0.2.6-unsigned-base
+          path: app/build/outputs/apk/debug/app-debug-unsigned.apk
+          if-no-files-found: error
+
+      - name: Prepare Android signing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p signing-tools
+          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
+          cp -R "$ANDROID_HOME/build-tools/35.0.0/lib" signing-tools/
+          chmod +x signing-tools/apksigner signing-tools/zipalign
+
+      - name: Upload Android signing tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-signing-tools-35.0.0
+          path: signing-tools
           if-no-files-found: error
