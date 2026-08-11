@@ -38,27 +38,10 @@ jobs:
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
 
-          cat \
-            assets/v027/ui_assets.part000.b64 \
-            assets/v027/ui_assets.part001.b64 \
-            assets/v027/ui_assets.part002.b64 \
-            assets/v027/ui_assets.part003.b64 \
-            assets/v027/ui_assets.part004.b64 \
-            assets/v027/ui_assets.part005.b64 \
-            assets/v027/ui_assets.part006.b64 \
-            assets/v027/ui_assets.part007.b64 \
-            assets/v027/ui_assets.part008.b64 \
-            assets/v027/ui_assets.part009.b64 \
-            assets/v027/ui_assets.part010.b64 \
-            assets/v027/ui_assets.part011.b64 \
-            assets/v027/ui_assets.part012.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode \
-            > /tmp/lunari027-ui.zip
-
-          sha256sum /tmp/lunari027-ui.zip
-          unzip -t /tmp/lunari027-ui.zip
-          unzip -o /tmp/lunari027-ui.zip -d app/src/main/res/drawable-nodpi
+          test -s assets/v027/ui_assets.zip
+          sha256sum assets/v027/ui_assets.zip
+          unzip -t assets/v027/ui_assets.zip
+          unzip -o assets/v027/ui_assets.zip -d app/src/main/res/drawable-nodpi
 
           cat > /tmp/lunari027.sha256 <<'EOF'
           d60477696f259cd90d16c97a1aa485d9cf367a6005a515e211225e8e9a8fff00  app/src/main/res/drawable-nodpi/lunari_logo_027.webp
