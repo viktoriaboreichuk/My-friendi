@@ -2,10 +2,6 @@ name: Build Lunari 0.2.7 Recovery
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "lunari-027-assets" ]
-  pull_request:
-    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -35,91 +31,5 @@ jobs:
       - name: Restore approved Lunari 0.2.7 UI assets
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p app/src/main/res/drawable-nodpi
-
-          tr -d '\r\n' < assets/v027/ui_assets.full.b64 \
-            | base64 --decode \
-            > /tmp/lunari027-ui.zip
-
-          echo "16472742f4bf89d3998a11d86cc9b86fa39b65f84d073272a565c199f76937ca  /tmp/lunari027-ui.zip" | sha256sum -c -
-          unzip -t /tmp/lunari027-ui.zip
-          unzip -o /tmp/lunari027-ui.zip -d app/src/main/res/drawable-nodpi
-
-          for f in \
-            lunari_logo_027.webp \
-            lunari_home_bg_027.webp \
-            lunari_card_overlay_01.webp \
-            lunari_card_overlay_02.webp \
-            lunari_card_overlay_03.webp \
-            lunari_card_overlay_04.webp \
-            lunari_card_overlay_05.webp \
-            lunari_card_overlay_06.webp; do
-            test -s "app/src/main/res/drawable-nodpi/$f"
-            file "app/src/main/res/drawable-nodpi/$f"
-          done
-
-      - name: Verify category artwork
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
-          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
-
-      - name: Activate Lunari home
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
-          s = p.read_text(encoding="utf-8")
-          old = "Route.Home -> HomeScreen(store, navigate)"
-          new = "Route.Home -> LunariHomeV2(store, navigate)"
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif new not in s:
-              raise SystemExit("Home route marker not found")
-          p.write_text(s, encoding="utf-8")
-          PY
-
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
-
-      - name: Prepare APK artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          test -n "$APK"
-          test -s "$APK"
-          cp "$APK" Lunari-0.2.7-STAGE.apk
-          ls -lh Lunari-0.2.7-STAGE.apk
-          sha256sum Lunari-0.2.7-STAGE.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Lunari-0.2.7-STAGE
-          path: Lunari-0.2.7-STAGE.apk
-          if-no-files-found: error
-
-      - name: Prepare Android signing tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p signing-tools
-          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
-          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
-          cp -R "$ANDROID_HOME/build-tools/35.0.0/lib" signing-tools/
-          chmod +x signing-tools/apksigner signing-tools/zipalign
-
-      - name: Upload Android signing tools
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-signing-tools-35.0.0
-          path: signing-tools
-          if-no-files-found: error
+          echo "Recovery workflow is temporarily paused while verified assets are staged."
+          exit 1
