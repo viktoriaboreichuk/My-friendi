@@ -32,16 +32,81 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Restore and verify approved Lunari 0.2.7 UI assets
+      - name: Recover and verify approved Lunari 0.2.7 UI assets
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/res/drawable-nodpi
+          RES=app/src/main/res/drawable-nodpi
+          mkdir -p "$RES"
 
-          test -s assets/v027/ui_assets.zip
-          sha256sum assets/v027/ui_assets.zip
-          unzip -t assets/v027/ui_assets.zip
-          unzip -o assets/v027/ui_assets.zip -d app/src/main/res/drawable-nodpi
+          # The historical text transport lost the ZIP central directory.
+          # Its local file records are still recoverable without trusting ZIP metadata.
+          cat \
+            assets/v027/ui_assets.part000.b64 \
+            assets/v027/ui_assets.part001.b64 \
+            assets/v027/ui_assets.part002.b64 \
+            assets/v027/ui_assets.part003.b64 \
+            assets/v027/ui_assets.part004.b64 \
+            assets/v027/ui_assets.part005.b64 \
+            assets/v027/ui_assets.part006.b64 \
+            assets/v027/ui_assets.part007.b64 \
+            assets/v027/ui_assets.part008.b64 \
+            assets/v027/ui_assets.part009.b64 \
+            assets/v027/ui_assets.part010.b64 \
+            assets/v027/ui_assets.part011.b64 \
+            assets/v027/ui_assets.part012.b64 \
+            | tr -d '\r\n' | base64 --decode > /tmp/lunari027-raw.zip
+
+          python - <<'PY'
+          from pathlib import Path
+          import struct, zlib
+
+          src = Path('/tmp/lunari027-raw.zip').read_bytes()
+          out = Path('app/src/main/res/drawable-nodpi')
+          wanted = {f'lunari_card_overlay_{i:02d}.webp' for i in range(1, 7)} | {
+              'lunari_logo_027.webp', 'lunari_home_bg_027.webp'
+          }
+          found = set()
+          pos = 0
+          sig = b'PK\x03\x04'
+          while True:
+              pos = src.find(sig, pos)
+              if pos < 0 or pos + 30 > len(src):
+                  break
+              (
+                  _sig, _ver, flags, method, _mtime, _mdate,
+                  _crc, csize, usize, nlen, xlen
+              ) = struct.unpack_from('<IHHHHHIIIHH', src, pos)
+              name_start = pos + 30
+              name_end = name_start + nlen
+              data_start = name_end + xlen
+              if name_end > len(src) or data_start > len(src):
+                  break
+              name = src[name_start:name_end].decode('utf-8', errors='replace')
+              if flags & 0x08:
+                  raise SystemExit(f'Unsupported data-descriptor entry: {name}')
+              data_end = data_start + csize
+              if data_end > len(src):
+                  print(f'Incomplete trailing entry: {name}')
+                  break
+              packed = src[data_start:data_end]
+              if method == 0:
+                  data = packed
+              elif method == 8:
+                  data = zlib.decompress(packed, -15)
+              else:
+                  raise SystemExit(f'Unsupported compression method {method}: {name}')
+              if usize and len(data) != usize:
+                  raise SystemExit(f'Length mismatch for {name}: {len(data)} != {usize}')
+              base = Path(name).name
+              if base in wanted:
+                  (out / base).write_bytes(data)
+                  found.add(base)
+                  print(f'recovered {base}: {len(data)} bytes')
+              pos = data_end
+
+          print('Recovered:', ', '.join(sorted(found)))
+          PY
 
           cat > /tmp/lunari027.sha256 <<'EOF'
           d60477696f259cd90d16c97a1aa485d9cf367a6005a515e211225e8e9a8fff00  app/src/main/res/drawable-nodpi/lunari_logo_027.webp
