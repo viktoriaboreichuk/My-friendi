@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -219,12 +220,16 @@ private fun LunariCard026(
                 }
             }
 
-            Image(
-                painter = painterResource(overlayRes),
-                contentDescription = null,
-                modifier = Modifier.matchParentSize(),
-                contentScale = ContentScale.FillBounds
-            )
+            Box(Modifier.matchParentSize().clip(cardShape)) {
+                Image(
+                    painter = painterResource(overlayRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .graphicsLayer(scaleX = 1.061f, scaleY = 1.34f),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
 
             Surface(
                 modifier = Modifier
