@@ -82,7 +82,9 @@ jobs:
           set -euo pipefail
           FRAME="Lunari-0.2.8-artwork-frame.png"
           test -s "$FRAME"
-          echo "49c08d95deeb8d7806ed06061f6ca583603008fbb55afd22e237a40cd3c904c7  $FRAME" | sha256sum -c -
+          echo "Artwork frame SHA-256:"
+          sha256sum "$FRAME"
+          test "$(git hash-object "$FRAME")" = "fb39ced8d43eb6f43d12aceb8e0038ab64d6c4fe"
           test "$(xxd -p -l 8 "$FRAME")" = "89504e470d0a1a0a"
           cp "$FRAME" app/src/main/res/drawable-nodpi/lunari_artwork_frame_028.png
 
