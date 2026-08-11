@@ -1,42 +1,14 @@
-name: Diagnose Lunari 0.2.5 chunks
+name: Diagnose Lunari 0.2.5 chunks (legacy)
 
+# Historical diagnostic only. The old Base64 chunk transport is deprecated.
 on:
-  push:
-    branches: [ "lunari-025-assets" ]
-  pull_request:
-    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
-  diagnose:
+  legacy-info:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Print chunk hashes
-        shell: bash
+      - name: Legacy diagnostic notice
         run: |
-          set -euo pipefail
-          for f in \
-            assets/v025/bg.part00.b64 \
-            assets/v025/bg.rest00.b64 \
-            assets/v025/bg.rest01.b64 \
-            assets/v025/bg.rest02.b64 \
-            assets/v025/bg.rest03.b64 \
-            assets/v025/bg.rest04.b64 \
-            assets/v025/bg.rest05.b64 \
-            assets/v025/bg.rest06.b64 \
-            assets/v025/bg.rest07.b64 \
-            assets/v025/bg.rest08.b64 \
-            assets/v025/bg.rest09.b64 \
-            assets/v025/bg.rest10.b64 \
-            assets/v025/bg.rest11.b64 \
-            assets/v025/bg.rest12.b64 \
-            assets/v025/bg.rest13.0.b64 \
-            assets/v025/bg.rest13.1.b64 \
-            assets/v025/bg.rest13.2.b64 \
-            assets/v025/bg.rest13.3.b64 \
-            assets/v025/bg.rest14.0.b64 \
-            assets/v025/bg.rest14.1.b64; do
-            clean=$(tr -d '\r\n' < "$f")
-            printf '%s len=%s sha256=' "$f" "${#clean}"
-            printf '%s' "$clean" | sha256sum | awk '{print $1}'
-          done
+          echo "Legacy 0.2.5 Base64 chunk diagnostic."
+          echo "Current 0.2.6 assets are verified from the uploaded binary ZIP by SHA-256."
