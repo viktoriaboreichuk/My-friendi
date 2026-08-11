@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.7.1 from 0.2.7
+name: Build Lunari 0.2.8 from 0.2.7.1
 
 on:
   workflow_dispatch:
@@ -76,6 +76,16 @@ jobs:
 
           cp /tmp/lunari027-assets/lunari_card_overlay_0*.webp app/src/main/res/drawable-nodpi/
 
+      - name: Verify and install exact Lunari 0.2.8 artwork frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRAME="Lunari-0.2.8-artwork-frame.png"
+          test -s "$FRAME"
+          echo "49c08d95deeb8d7806ed06061f6ca583603008fbb55afd22e237a40cd3c904c7  $FRAME" | sha256sum -c -
+          test "$(xxd -p -l 8 "$FRAME")" = "89504e470d0a1a0a"
+          cp "$FRAME" app/src/main/res/drawable-nodpi/lunari_artwork_frame_028.png
+
       - name: Verify preserved category artwork
         shell: bash
         run: |
@@ -87,14 +97,21 @@ jobs:
           test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
           test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
 
-      - name: Verify version and exact 0.2.7.1 layout fix
+      - name: Verify version and approved 0.2.8 scope
         shell: bash
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 10' app/build.gradle.kts
-          grep -F 'versionName = "0.2.7.1"' app/build.gradle.kts
+          grep -F 'versionCode = 11' app/build.gradle.kts
+          grep -F 'versionName = "0.2.8"' app/build.gradle.kts
           grep -F 'graphicsLayer(scaleX = 1.061f, scaleY = 1.34f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'R.drawable.lunari_artwork_frame_028' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Персонажи"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Чаты"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Профили"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'Text("Что создать?")' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'navigate(Route.Settings, "account")' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          test -s app/src/main/java/com/vega/yakor/LunariAccount028.kt
           python - <<'PY'
           from pathlib import Path
           p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
@@ -129,7 +146,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.7.1-unsigned-base
+          name: lunari-0.2.8-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
