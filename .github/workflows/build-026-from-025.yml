@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.6 from 0.2.5
+name: Build Lunari 0.2.7 from 0.2.6
 
 on:
   workflow_dispatch:
@@ -30,41 +30,53 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Verify and install exact Lunari 0.2.6 UI assets
+      - name: Restore exact Lunari 0.2.6 base UI assets
         shell: bash
         run: |
           set -euo pipefail
-          PACK="Lunari-0.2.6-ui-assets.zip"
+          BASE="Lunari-0.2.6-ui-assets.zip"
+          test -s "$BASE"
+          echo "6f19916fb7a5b556eb24d9bb702120af7f78131c19ac2a3e4564b8f3093d1ec3  $BASE" | sha256sum -c -
+          unzip -t "$BASE"
+          rm -rf /tmp/lunari026-base
+          mkdir -p /tmp/lunari026-base app/src/main/res/drawable-nodpi
+          unzip -q "$BASE" -d /tmp/lunari026-base
+          echo "c0e4cf96971e10de6f147314caf3f81e6c0426cfa1a6049966b6325745a6e16a  /tmp/lunari026-base/lunari_logo_026.webp" | sha256sum -c -
+          echo "2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  /tmp/lunari026-base/lunari_home_bg_v025.webp" | sha256sum -c -
+          cp /tmp/lunari026-base/lunari_logo_026.webp app/src/main/res/drawable-nodpi/
+          cp /tmp/lunari026-base/lunari_home_bg_v025.webp app/src/main/res/drawable-nodpi/
+
+      - name: Verify and install exact Lunari 0.2.7 card ornaments
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACK="Lunari-0.2.7-ui-assets.zip"
           test -s "$PACK"
-          echo "6f19916fb7a5b556eb24d9bb702120af7f78131c19ac2a3e4564b8f3093d1ec3  $PACK" | sha256sum -c -
+          echo "2a81c2c792ab6428484e943f3eeb8249dad206e8ccbba2267fa76d9b23e7de99  $PACK" | sha256sum -c -
           unzip -t "$PACK"
-          rm -rf /tmp/lunari026-assets
-          mkdir -p /tmp/lunari026-assets app/src/main/res/drawable-nodpi
-          unzip -q "$PACK" -d /tmp/lunari026-assets
+          rm -rf /tmp/lunari027-assets
+          mkdir -p /tmp/lunari027-assets app/src/main/res/drawable-nodpi
+          unzip -q "$PACK" -d /tmp/lunari027-assets
 
-          cat > /tmp/lunari026.sha256 <<'EOF'
-          c0e4cf96971e10de6f147314caf3f81e6c0426cfa1a6049966b6325745a6e16a  /tmp/lunari026-assets/lunari_logo_026.webp
-          ce6b2e5278636edee3fa91c55c12d98d170204600601d23edcbe55cf37071165  /tmp/lunari026-assets/lunari_card_overlay_01.webp
-          5bfa8d8ef72ed4131e33acfbc3bbe816d114b62f663da8a464b68f6204711460  /tmp/lunari026-assets/lunari_card_overlay_02.webp
-          acf341f1ef107210e39d3ea06f61c52985ccb63f698a6f3ec52e1bd0336de18e  /tmp/lunari026-assets/lunari_card_overlay_03.webp
-          f1bc5eeeca07318bbc872ba788b428dbe83a226248f04bf0e06d09de25dd9c68  /tmp/lunari026-assets/lunari_card_overlay_04.webp
-          c4f8aa905451b7690772bfa78069182aa68a98826f197bf05cc9ef96ff7f6a8e  /tmp/lunari026-assets/lunari_card_overlay_05.webp
-          be1ea05679e561633273f28e480ed7f3cb7711c65a0a8d923e5669f76c5272d6  /tmp/lunari026-assets/lunari_card_overlay_06.webp
-          2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  /tmp/lunari026-assets/lunari_home_bg_v025.webp
+          cat > /tmp/lunari027.sha256 <<'EOF'
+          648235f270cc8cae8f26f880edc3a1188f272352f5a6254457adec52a582d5b3  /tmp/lunari027-assets/lunari_card_overlay_01.webp
+          3e7db94cfc82e502c8d6ad4e773d8a94832907f70d136befd1849ea90f05a19e  /tmp/lunari027-assets/lunari_card_overlay_02.webp
+          e94f68214d066ae45a8e91b6e4d667792b7fb4f9c3068a5cfb0f84d94ca274dd  /tmp/lunari027-assets/lunari_card_overlay_03.webp
+          4fc5074d67a440092c195b205db3eefa7970938c4adb7221ec7a4d6c976c20a2  /tmp/lunari027-assets/lunari_card_overlay_04.webp
+          eac962a4505fe2f15eeafceaf794e5176082554ae7f96deb28fde356f9e61ca8  /tmp/lunari027-assets/lunari_card_overlay_05.webp
+          7fddead42bd37dde2245194837f739ffe4c98bd2b6fe8b08a6dd5ddc6ef6e554  /tmp/lunari027-assets/lunari_card_overlay_06.webp
           EOF
-          sed -i 's/^          //' /tmp/lunari026.sha256
-          sha256sum -c /tmp/lunari026.sha256
+          sed -i 's/^          //' /tmp/lunari027.sha256
+          sha256sum -c /tmp/lunari027.sha256
 
-          for f in /tmp/lunari026-assets/*.webp; do
+          for f in /tmp/lunari027-assets/lunari_card_overlay_0*.webp; do
             test "$(head -c 4 "$f")" = "RIFF"
             test "$(dd if="$f" bs=1 skip=8 count=4 status=none)" = "WEBP"
           done
 
-          cp /tmp/lunari026-assets/lunari_logo_026.webp app/src/main/res/drawable-nodpi/
-          cp /tmp/lunari026-assets/lunari_card_overlay_0*.webp app/src/main/res/drawable-nodpi/
-          cp /tmp/lunari026-assets/lunari_home_bg_v025.webp app/src/main/res/drawable-nodpi/
+          cp /tmp/lunari027-assets/lunari_card_overlay_0*.webp app/src/main/res/drawable-nodpi/
 
-      - name: Verify preserved 0.2.5 category artwork
+      - name: Verify preserved category artwork
         shell: bash
         run: |
           set -euo pipefail
@@ -80,8 +92,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 8' app/build.gradle.kts
-          grep -F 'versionName = "0.2.6"' app/build.gradle.kts
+          grep -F 'versionCode = 9' app/build.gradle.kts
+          grep -F 'versionName = "0.2.7"' app/build.gradle.kts
           python - <<'PY'
           from pathlib import Path
           p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
@@ -116,6 +128,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.6-unsigned-base
+          name: lunari-0.2.7-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
