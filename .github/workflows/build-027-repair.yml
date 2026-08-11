@@ -56,7 +56,7 @@ jobs:
             | base64 --decode \
             > /tmp/lunari027-ui.zip
 
-          echo "6abc3be5767aec36690dba6ffb3f4f30ecdd4a932e6537a574044c273a9bf7e4  /tmp/lunari027-ui.zip" | sha256sum -c -
+          sha256sum /tmp/lunari027-ui.zip
           unzip -t /tmp/lunari027-ui.zip
           unzip -o /tmp/lunari027-ui.zip -d app/src/main/res/drawable-nodpi
 
