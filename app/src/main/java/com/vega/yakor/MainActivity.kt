@@ -40,13 +40,30 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     var route by remember { mutableStateOf(Route.Home) }
                     var selectedId by remember { mutableStateOf("") }
-                    YakorApp(
-                        store = store,
-                        route = route,
-                        selectedId = selectedId,
-                        navigate = { next, id -> route = next; selectedId = id ?: "" },
-                        back = { route = Route.Home; selectedId = "" }
-                    )
+                    val navigate: (Route, String?) -> Unit = { next, id ->
+                        route = next
+                        selectedId = id ?: ""
+                    }
+                    val back: () -> Unit = {
+                        route = Route.Home
+                        selectedId = ""
+                    }
+
+                    if (route == Route.Settings && selectedId == "account") {
+                        LunariAccount028(
+                            store = store,
+                            onBack = back,
+                            onAiSettings = { navigate(Route.Settings, null) }
+                        )
+                    } else {
+                        YakorApp(
+                            store = store,
+                            route = route,
+                            selectedId = selectedId,
+                            navigate = navigate,
+                            back = back
+                        )
+                    }
                 }
             }
         }
