@@ -163,7 +163,17 @@ private fun LunariCard026(
             .shadow(7.dp, cardShape, clip = false)
             .clickable(onClick = onClick),
         shape = cardShape,
-        color = Color.Transparent
+        color = Color.Transparent,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Brush.horizontalGradient(
+                listOf(
+                    Lavender026.copy(alpha = .36f),
+                    Ivory026.copy(alpha = .22f),
+                    LavenderGlow026.copy(alpha = .34f)
+                )
+            )
+        )
     ) {
         Box(
             Modifier.fillMaxSize().background(
@@ -185,7 +195,7 @@ private fun LunariCard026(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 11.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+                    .padding(start = 11.dp, end = 50.dp, top = 9.dp, bottom = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 LunariArtworkFrame026(imageRes)
@@ -207,12 +217,6 @@ private fun LunariCard026(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                Icon(
-                    Icons.Outlined.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = Lavender026.copy(alpha = .90f),
-                    modifier = Modifier.size(20.dp)
-                )
             }
 
             Image(
@@ -221,6 +225,29 @@ private fun LunariCard026(
                 modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.FillBounds
             )
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 10.dp)
+                    .size(36.dp)
+                    .shadow(6.dp, CircleShape, clip = false),
+                shape = CircleShape,
+                color = Color(0xC0141830),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    Lavender026.copy(alpha = .62f)
+                )
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Outlined.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = Ivory026.copy(alpha = .96f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }
