@@ -14,8 +14,15 @@ android {
         applicationId = "com.vega.yakor"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 9
+        versionName = "0.2.7"
+    }
+
+    buildTypes {
+        getByName("debug") {
+            // Keep CI base APK unsigned; it is signed after the green build with the permanent Lunari key.
+            signingConfig = null
+        }
     }
 
     buildFeatures {
@@ -51,6 +58,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

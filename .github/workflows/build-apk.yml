@@ -1,9 +1,7 @@
-name: Build Yakor APK
+name: Build Lunari APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -30,12 +28,85 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
+      - name: Restore approved Lunari 0.2.7 UI assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+          test -s assets/v027/ui_assets.zip
+          unzip -t assets/v027/ui_assets.zip
+          unzip -o assets/v027/ui_assets.zip -d app/src/main/res/drawable-nodpi
+
+          for f in \
+            lunari_logo_027.webp \
+            lunari_home_bg_027.webp \
+            lunari_card_overlay_01.webp \
+            lunari_card_overlay_02.webp \
+            lunari_card_overlay_03.webp \
+            lunari_card_overlay_04.webp \
+            lunari_card_overlay_05.webp \
+            lunari_card_overlay_06.webp; do
+            test -s "app/src/main/res/drawable-nodpi/$f"
+            file "app/src/main/res/drawable-nodpi/$f"
+          done
+
+      - name: Verify category artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
+
+      - name: Activate Lunari home
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = p.read_text(encoding="utf-8")
+          old = "Route.Home -> HomeScreen(store, navigate)"
+          new = "Route.Home -> LunariHomeV2(store, navigate)"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("Home route marker not found")
+          p.write_text(s, encoding="utf-8")
+          PY
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/apk/debug/app-debug-unsigned.apk
+          sha256sum app/build/outputs/apk/debug/app-debug-unsigned.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yakor-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: lunari-0.2.7-unsigned-base
+          path: app/build/outputs/apk/debug/app-debug-unsigned.apk
+          if-no-files-found: error
+
+      - name: Prepare Android signing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p signing-tools
+          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
+          cp -R "$ANDROID_HOME/build-tools/35.0.0/lib" signing-tools/
+          chmod +x signing-tools/apksigner signing-tools/zipalign
+
+      - name: Upload Android signing tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-signing-tools-35.0.0
+          path: signing-tools
           if-no-files-found: error
