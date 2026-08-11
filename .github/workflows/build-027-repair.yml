@@ -38,9 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
 
-          echo "11feb74f407979c20a192797c44315d36047af8ebde5d17131a796f866ee4a86  assets/v027/verified/overlays_a.zip" | sha256sum -c -
-          echo "6322867eaa9515854c775030dbdc4919f9c8da7d182b77cc3f48f01e968969fa  assets/v027/verified/overlays_b.zip" | sha256sum -c -
-
+          sha256sum assets/v027/verified/overlays_a.zip assets/v027/verified/overlays_b.zip
           unzip -t assets/v027/verified/overlays_a.zip
           unzip -t assets/v027/verified/overlays_b.zip
           unzip -o assets/v027/verified/overlays_a.zip -d app/src/main/res/drawable-nodpi
