@@ -1,8 +1,8 @@
-name: Build Yakor APK
+name: Build Lunari APK
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches: [ "main", "master" ]
 
 jobs:
@@ -30,12 +30,125 @@ jobs:
           gradle-version: '8.13'
           cache-provider: basic
 
-      - name: Build debug APK
+      - name: Restore stable Lunari signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: lunari-stable-debug-key-v1
+
+      - name: Require update-compatible signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s "$HOME/.android/debug.keystore" ]; then
+            echo "Stable Lunari signing key cache is missing. Refusing to build an incompatible update."
+            exit 1
+          fi
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E 'SHA256:|Owner:'
+
+      - name: Restore approved 51474 background
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable-nodpi
+          cat \
+            assets/v025/bin/bg.part00 \
+            assets/v025/bin/bg.part01 \
+            assets/v025/bin/bg.part02 \
+            assets/v025/bin/bg.part03 \
+            assets/v025/bin/bg.part04 \
+            assets/v025/bin/bg.part05_06 \
+            assets/v025/bin/bg.part07 \
+            assets/v025/bin/bg.part08 \
+            assets/v025/bin/bg.part09 \
+            assets/v025/bin/bg.part10 \
+            assets/v025/bin/bg.part11 \
+            assets/v025/bin/bg.part12 \
+            assets/v025/bin/bg.part13 \
+            assets/v025/bin/bg.part14 \
+            assets/v025/bin/bg.part15 \
+            > app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          BG=app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp
+          test "$(stat -c '%s' "$BG")" = "77870"
+          echo "2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  $BG" | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/res/drawable-nodpi/lunari_home_bg_v025.webp')
+          b = p.read_bytes()
+          if b[:4] != b'RIFF' or b[8:12] != b'WEBP':
+              raise SystemExit('BACKGROUND_NOT_WEBP')
+          print('approved 51474 background restored:', len(b), 'bytes')
+          PY
+
+      - name: Activate Lunari 0.2.5 UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          screens = Path('app/src/main/java/com/vega/yakor/Screens.kt')
+          s = screens.read_text(encoding='utf-8')
+          s, n = re.subn(
+              r'Route\.Home\s*->\s*[A-Za-z0-9_]+\(store,\s*navigate\)',
+              'Route.Home -> LunariHomeV025(store, navigate)',
+              s,
+              count=1,
+          )
+          if n != 1 and 'Route.Home -> LunariHomeV025(store, navigate)' not in s:
+              raise SystemExit('Could not activate LunariHomeV025')
+          screens.write_text(s, encoding='utf-8')
+
+          home = Path('app/src/main/java/com/vega/yakor/LunariHomeV025.kt')
+          h = home.read_text(encoding='utf-8')
+          old = 'R.drawable.lunari_home_bg'
+          new = 'R.drawable.lunari_home_bg_v025'
+          if old in h:
+              h = h.replace(old, new, 1)
+          elif new not in h:
+              raise SystemExit('0.2.5 background resource marker not found')
+          home.write_text(h, encoding='utf-8')
+          PY
+
+      - name: Verify protected artwork and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'versionCode = 7' app/build.gradle.kts
+          grep -q 'versionName = "0.2.5"' app/build.gradle.kts
+          grep -q 'lunari_home_bg_v025' app/src/main/java/com/vega/yakor/LunariHomeV025.kt
+          for f in \
+            lunari_character.webp \
+            lunari_world.webp \
+            lunari_chat.webp \
+            lunari_memory.webp \
+            lunari_profiles.webp \
+            lunari_snapshots.webp \
+            lunari_launcher_icon.jpg; do
+            test -s "app/src/main/res/drawable-nodpi/$f"
+          done
+
+      - name: Build 0.2.5 APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Verify APK, package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
+          echo "$BADGING"
+          echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
+          echo "$BADGING" | grep -q "versionCode='7'"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          sha256sum "$APK"
+          cp "$APK" /tmp/Lunari-0.2.5.apk
+
+      - name: Upload Lunari 0.2.5 APK
         uses: actions/upload-artifact@v4
         with:
-          name: yakor-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: lunari-0.2.5-apk
+          path: /tmp/Lunari-0.2.5.apk
           if-no-files-found: error
