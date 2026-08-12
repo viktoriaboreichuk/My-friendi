@@ -3,7 +3,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:allowBackup="true"
-        android:label="Якорь"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="Lunari"
         android:supportsRtl="true"
         android:theme="@style/Theme.Yakor">
         <activity
