@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.9 from 0.2.8
+name: Build Lunari 0.2.9.1 from accepted base
 
 on:
   workflow_dispatch:
@@ -98,25 +98,30 @@ jobs:
           test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
           test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
 
-      - name: Apply approved Lunari 0.2.9 polish patch
+      - name: Apply approved Lunari 0.2.9.1 fix patch
         shell: bash
         run: |
           set -euo pipefail
           HOME_KT="app/src/main/java/com/vega/yakor/LunariHomeV2.kt"
           test "$(git hash-object "$HOME_KT")" = "aaaa2fd0f4480d3358966c5978143a01338d56f7"
-          python tools/lunari_029_polish_patch.py
+          python tools/lunari_0291_fix_patch.py
 
-      - name: Verify version and approved 0.2.9 scope
+      - name: Verify version and approved 0.2.9.1 scope
         shell: bash
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 12' app/build.gradle.kts
-          grep -F 'versionName = "0.2.9"' app/build.gradle.kts
+          grep -F 'versionCode = 13' app/build.gradle.kts
+          grep -F 'versionName = "0.2.9.1"' app/build.gradle.kts
           grep -F 'graphicsLayer(scaleX = 1.061f, scaleY = 1.34f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
           grep -F 'R.drawable.lunari_artwork_frame_028' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
-          grep -F '.offset(x = 2.dp, y = (-26).dp)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
-          grep -F 'LunariCardGlow029(title)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'LunariHudOverlay0291(' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F '.padding(top = 8.dp, end = 21.dp)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F '.zIndex(30f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'state = listState' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          ! grep -F '.offset(x = 2.dp, y = (-26).dp)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'LunariCardCornerGlow0291()' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'LunariCardEdgeGlints0291(title)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
           grep -F 'imageRes == R.drawable.lunari_snapshots' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
           grep -F 'tint = Lavender026.copy(alpha = .90f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
           grep -F 'label = "Персонажи"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
@@ -156,15 +161,15 @@ jobs:
           BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
           echo "$BADGING"
           echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
-          echo "$BADGING" | grep -q "versionCode='12'"
-          echo "$BADGING" | grep -q "versionName='0.2.9'"
+          echo "$BADGING" | grep -q "versionCode='13'"
+          echo "$BADGING" | grep -q "versionName='0.2.9.1'"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.9-unsigned-base
+          name: lunari-0.2.9.1-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
