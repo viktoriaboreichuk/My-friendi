@@ -237,7 +237,7 @@ private fun LunariCard026(
 
 @Composable
 private fun LunariCardCornerGlow0291() {
-    Box(Modifier.matchParentSize()) {
+    Box(Modifier.fillMaxSize()) {
         LunariCornerHalo0291(
             Modifier.align(Alignment.TopStart).offset(x = (-28).dp, y = (-28).dp)
         )
@@ -286,7 +286,7 @@ private fun LunariCardEdgeGlints0291(seed: String) {
         else -> listOf(.15f, .47f, .79f) to listOf(.28f, .62f, .91f)
     }
 
-    Canvas(modifier = Modifier.matchParentSize()) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val silver = Color(0xFFF3EEFF)
         val halfWidth = 6.dp.toPx()
         val verticalHalf = 2.1.dp.toPx()
