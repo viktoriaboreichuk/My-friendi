@@ -53,14 +53,11 @@ replace_once(
 )
 
 # 3. Recenter only the camera artwork on the Snapshots card.
+# Keep its size/content untouched: position only.
 artwork_modifier = "                modifier = Modifier.fillMaxSize().clip(CircleShape)\n"
 artwork_modifier_new = '''                modifier = Modifier
                     .fillMaxSize()
                     .offset(y = if (imageRes == R.drawable.lunari_snapshots) (-4).dp else 0.dp)
-                    .graphicsLayer(
-                        scaleX = if (imageRes == R.drawable.lunari_snapshots) 1.06f else 1f,
-                        scaleY = if (imageRes == R.drawable.lunari_snapshots) 1.06f else 1f
-                    )
                     .clip(CircleShape)
 '''
 replace_once(artwork_modifier, artwork_modifier_new, "snapshot artwork centering")
