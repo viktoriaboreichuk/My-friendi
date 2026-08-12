@@ -1,0 +1,178 @@
+name: Build Lunari 0.2.9 from 0.2.8
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.13'
+          cache-provider: basic
+
+      - name: Restore exact Lunari 0.2.6 base UI assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="Lunari-0.2.6-ui-assets.zip"
+          test -s "$BASE"
+          echo "6f19916fb7a5b556eb24d9bb702120af7f78131c19ac2a3e4564b8f3093d1ec3  $BASE" | sha256sum -c -
+          unzip -t "$BASE"
+          rm -rf /tmp/lunari026-base
+          mkdir -p /tmp/lunari026-base app/src/main/res/drawable-nodpi
+          unzip -q "$BASE" -d /tmp/lunari026-base
+          echo "c0e4cf96971e10de6f147314caf3f81e6c0426cfa1a6049966b6325745a6e16a  /tmp/lunari026-base/lunari_logo_026.webp" | sha256sum -c -
+          echo "2517ad57dd6d5060f1f9e8f5105e990c10ca7cc8a02f3d799b7084000e0a199e  /tmp/lunari026-base/lunari_home_bg_v025.webp" | sha256sum -c -
+          cp /tmp/lunari026-base/lunari_logo_026.webp app/src/main/res/drawable-nodpi/
+          cp /tmp/lunari026-base/lunari_home_bg_v025.webp app/src/main/res/drawable-nodpi/
+
+      - name: Verify and install exact Lunari 0.2.7 card ornaments
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACK="Lunari-0.2.7-ui-assets.zip"
+          test -s "$PACK"
+          echo "2a81c2c792ab6428484e943f3eeb8249dad206e8ccbba2267fa76d9b23e7de99  $PACK" | sha256sum -c -
+          unzip -t "$PACK"
+          rm -rf /tmp/lunari027-assets
+          mkdir -p /tmp/lunari027-assets app/src/main/res/drawable-nodpi
+          unzip -q "$PACK" -d /tmp/lunari027-assets
+
+          cat > /tmp/lunari027.sha256 <<'EOF'
+          648235f270cc8cae8f26f880edc3a1188f272352f5a6254457adec52a582d5b3  /tmp/lunari027-assets/lunari_card_overlay_01.webp
+          3e7db94cfc82e502c8d6ad4e773d8a94832907f70d136befd1849ea90f05a19e  /tmp/lunari027-assets/lunari_card_overlay_02.webp
+          e94f68214d066ae45a8e91b6e4d667792b7fb4f9c3068a5cfb0f84d94ca274dd  /tmp/lunari027-assets/lunari_card_overlay_03.webp
+          4fc5074d67a440092c195b205db3eefa7970938c4adb7221ec7a4d6c976c20a2  /tmp/lunari027-assets/lunari_card_overlay_04.webp
+          eac962a4505fe2f15eeafceaf794e5176082554ae7f96deb28fde356f9e61ca8  /tmp/lunari027-assets/lunari_card_overlay_05.webp
+          7fddead42bd37dde2245194837f739ffe4c98bd2b6fe8b08a6dd5ddc6ef6e554  /tmp/lunari027-assets/lunari_card_overlay_06.webp
+          EOF
+          sed -i 's/^          //' /tmp/lunari027.sha256
+          sha256sum -c /tmp/lunari027.sha256
+
+          for f in /tmp/lunari027-assets/lunari_card_overlay_0*.webp; do
+            test "$(head -c 4 "$f")" = "RIFF"
+            test "$(dd if="$f" bs=1 skip=8 count=4 status=none)" = "WEBP"
+          done
+
+          cp /tmp/lunari027-assets/lunari_card_overlay_0*.webp app/src/main/res/drawable-nodpi/
+
+      - name: Verify and install exact Lunari 0.2.8 artwork frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRAME="Lunari-0.2.8-artwork-frame.png"
+          test -s "$FRAME"
+          echo "01732f718aead7097894a445667848bf596ee632251dae73a4900cfe325f21a2  $FRAME" | sha256sum -c -
+          test "$(git hash-object "$FRAME")" = "fb39ced8d43eb6f43d12aceb8e0038ab64d6c4fe"
+          test "$(xxd -p -l 8 "$FRAME")" = "89504e470d0a1a0a"
+          cp "$FRAME" app/src/main/res/drawable-nodpi/lunari_artwork_frame_028.png
+
+      - name: Verify preserved category artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/res/drawable-nodpi/lunari_character.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_world.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_chat.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_memory.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_profiles.webp
+          test -s app/src/main/res/drawable-nodpi/lunari_snapshots.webp
+
+      - name: Apply approved Lunari 0.2.9 polish patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOME_KT="app/src/main/java/com/vega/yakor/LunariHomeV2.kt"
+          test "$(git hash-object "$HOME_KT")" = "aaaa2fd0f4480d3358966c5978143a01338d56f7"
+          python tools/lunari_029_polish_patch.py
+
+      - name: Verify version and approved 0.2.9 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
+          grep -F 'versionCode = 12' app/build.gradle.kts
+          grep -F 'versionName = "0.2.9"' app/build.gradle.kts
+          grep -F 'graphicsLayer(scaleX = 1.061f, scaleY = 1.34f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'R.drawable.lunari_artwork_frame_028' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F '.offset(x = 2.dp, y = (-26).dp)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'LunariCardGlow029(title)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'imageRes == R.drawable.lunari_snapshots' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'tint = Lavender026.copy(alpha = .90f)' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Персонажи"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Чаты"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'label = "Профили"' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'Text("Что создать?")' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          grep -F 'navigate(Route.Settings, "account")' app/src/main/java/com/vega/yakor/LunariHomeV2.kt
+          test -s app/src/main/java/com/vega/yakor/LunariAccount028.kt
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/vega/yakor/Screens.kt")
+          s = p.read_text(encoding="utf-8")
+          old = "Route.Home -> HomeScreen(store, navigate)"
+          new = "Route.Home -> LunariHomeV2(store, navigate)"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("Home route marker not found")
+          p.write_text(s, encoding="utf-8")
+          PY
+
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Verify APK package version alignment and build signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
+          echo "$BADGING"
+          echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
+          echo "$BADGING" | grep -q "versionCode='12'"
+          echo "$BADGING" | grep -q "versionName='0.2.9'"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lunari-0.2.9-unsigned-base
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload apksigner tool for local stable signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apksigner-35
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+          if-no-files-found: error
