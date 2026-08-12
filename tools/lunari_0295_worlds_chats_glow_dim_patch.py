@@ -7,6 +7,7 @@ import runpy
 runpy.run_path("tools/lunari_0294_glow_contour_patch.py", run_name="__main__")
 
 HOME_KT = Path("app/src/main/java/com/vega/yakor/LunariHomeV2.kt")
+BUILD_GRADLE = Path("app/build.gradle.kts")
 s = HOME_KT.read_text(encoding="utf-8")
 
 old = '''        Image(
@@ -64,4 +65,15 @@ for marker in required:
         raise SystemExit(f"required 0.2.9.5 marker missing: {marker}")
 
 HOME_KT.write_text(s, encoding="utf-8")
+
+# Keep the repository's accepted 0.2.9.4 source baseline intact so the historical
+# 0.2.9.4 PR workflow can remain green. The 0.2.9.5 artifact gets its own version
+# only inside this build pipeline.
+g = BUILD_GRADLE.read_text(encoding="utf-8")
+if g.count('versionCode = 16') != 1 or g.count('versionName = "0.2.9.4"') != 1:
+    raise SystemExit("0.2.9.5 version bump: exact 0.2.9.4 source baseline not found")
+g = g.replace('versionCode = 16', 'versionCode = 17', 1)
+g = g.replace('versionName = "0.2.9.4"', 'versionName = "0.2.9.5"', 1)
+BUILD_GRADLE.write_text(g, encoding="utf-8")
+
 print("Lunari 0.2.9.5 Worlds/Chats glow brightness -45% patch applied")
