@@ -106,7 +106,7 @@ private fun LunariCardGlow029(seed: String) {
         else -> listOf(.19f, .51f, .82f) to listOf(.31f, .64f, .90f)
     }
 
-    Canvas(modifier = Modifier.matchParentSize()) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val silver = Color(0xFFF1ECFF)
         val cornerRadius = 18.dp.toPx()
         val corners = listOf(
