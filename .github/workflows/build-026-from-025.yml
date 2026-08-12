@@ -1,0 +1,13 @@
+name: Legacy Lunari build pipeline (manual only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  legacy-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Legacy pipeline notice
+        run: |
+          echo "Historical pipeline retained for reference."
+          echo "Lunari 0.2.9.4 uses build-0294-glow-contour.yml."

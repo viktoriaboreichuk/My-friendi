@@ -1,0 +1,14 @@
+name: Diagnose Lunari 0.2.5 chunks (legacy)
+
+# Historical diagnostic only. The old Base64 chunk transport is deprecated.
+on:
+  workflow_dispatch:
+
+jobs:
+  legacy-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Legacy diagnostic notice
+        run: |
+          echo "Legacy 0.2.5 Base64 chunk diagnostic."
+          echo "Current 0.2.6 assets are verified from the uploaded binary ZIP by SHA-256."
