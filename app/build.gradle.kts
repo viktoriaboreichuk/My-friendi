@@ -14,8 +14,8 @@ android {
         applicationId = "com.vega.yakor"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.2.9.3"
+        versionCode = 16
+        versionName = "0.2.9.4"
     }
 
     buildFeatures {
