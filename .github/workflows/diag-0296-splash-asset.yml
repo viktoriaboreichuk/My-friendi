@@ -1,0 +1,15 @@
+name: Diagnose Lunari 0.2.9.6 splash asset (manual only)
+
+# One-time diagnostic retained for manual use only.
+# The approved splash identity is already enforced inside build-0296-mobile-splash.yml.
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnostic notice
+        run: |
+          echo "The one-time 0.2.9.6 splash diagnostic is retired from automatic PR checks."
+          echo "The active 0.2.9.6 build workflow performs exact asset identity checks before Gradle."

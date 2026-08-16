@@ -1,0 +1,15 @@
+name: Build Lunari 0.2.9.6 Mobile portrait splash (superseded manual)
+
+# Superseded by the user-requested 0.2.9.7 splash revision.
+# Retained only as a historical/manual recovery anchor.
+on:
+  workflow_dispatch:
+
+jobs:
+  legacy-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Superseded workflow notice
+        run: |
+          echo "0.2.9.6 first splash test is superseded."
+          echo "Use build-0297-mobile-splash-revision.yml for the current splash test."
