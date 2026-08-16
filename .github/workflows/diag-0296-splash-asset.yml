@@ -1,42 +1,15 @@
-name: Diagnose Lunari 0.2.9.6 splash asset
+name: Diagnose Lunari 0.2.9.6 splash asset (manual only)
 
+# One-time diagnostic retained for manual use only.
+# The approved splash identity is already enforced inside build-0296-mobile-splash.yml.
 on:
-  pull_request:
-    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
-  asset-identity:
+  diagnostic-info:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Verify uploaded splash identity and pixels
-        shell: bash
+      - name: Diagnostic notice
         run: |
-          set -euo pipefail
-          SPLASH="Lunari-0.2.9.6-mobile-splash.png"
-          test -s "$SPLASH"
-          echo "SIZE=$(stat -c%s "$SPLASH")"
-          echo "GIT_BLOB=$(git hash-object "$SPLASH")"
-          echo "SHA256=$(sha256sum "$SPLASH" | awk '{print $1}')"
-          echo "MAGIC=$(xxd -p -l 8 "$SPLASH")"
-          python -m pip install --quiet pillow
-          python - <<'PY'
-          import struct, hashlib
-          from PIL import Image
-          p = "Lunari-0.2.9.6-mobile-splash.png"
-          with open(p, "rb") as f:
-              head = f.read(24)
-          if head[:8] != b"\x89PNG\r\n\x1a\n":
-              raise SystemExit("not PNG")
-          width, height = struct.unpack(">II", head[16:24])
-          print(f"DIMENSIONS={width}x{height}")
-          im = Image.open(p).convert("RGBA")
-          pixel_sha = hashlib.sha256(im.tobytes()).hexdigest()
-          print(f"RGBA_PIXEL_SHA256={pixel_sha}")
-          expected = "d0caabe39f115fe971eced63dde203cdbd4aa0381693e13b8719f64e83e2e5c9"
-          if pixel_sha != expected:
-              raise SystemExit("uploaded splash pixels differ from approved mobile reference")
-          print("PIXELS_MATCH_APPROVED_REFERENCE=true")
-          PY
+          echo "The one-time 0.2.9.6 splash diagnostic is retired from automatic PR checks."
+          echo "The active 0.2.9.6 build workflow performs exact asset identity checks before Gradle."
