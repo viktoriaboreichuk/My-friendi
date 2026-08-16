@@ -109,10 +109,10 @@ jobs:
         run: |
           set -euo pipefail
           META=/tmp/lunari0299-splash/atlas_meta.json
-          grep -F '"src_atlas": [4, 4, 571, 713]' "$META"
-          grep -F '"src_atlas": [933, 721, 937, 386]' "$META"
-          grep -F '"src_atlas": [893, 1214, 915, 281]' "$META"
-          grep -F '"src_atlas": [1163, 1536, 638, 42]' "$META"
+          grep -F '"src_atlas":[4,4,571,713]' "$META"
+          grep -F '"src_atlas":[933,721,937,386]' "$META"
+          grep -F '"src_atlas":[893,1214,915,281]' "$META"
+          grep -F '"src_atlas":[1163,1536,638,42]' "$META"
           grep -F 'FULL-resolution atlas coordinates' tools/lunari_0299_layered_splash_patch.py
           ! grep -F 'Sprite0299(2, 2, 286, 357' tools/lunari_0299_layered_splash_patch.py
           ! grep -F 'Sprite0299(466, 360, 469, 193' tools/lunari_0299_layered_splash_patch.py
