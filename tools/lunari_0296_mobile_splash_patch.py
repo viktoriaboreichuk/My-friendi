@@ -24,30 +24,33 @@ required_main = (
 )
 for marker in required_main:
     if marker not in main:
-        raise SystemExit(f"0.2.9.7 MainActivity marker missing: {marker}")
+        raise SystemExit(f"0.2.9.8 MainActivity marker missing: {marker}")
 
 required_splash = (
     "R.drawable.lunari_splash_mobile_0296",
-    "ContentScale.FillBounds",
+    "ContentScale.Crop",
+    "ContentScale.Fit",
     "PathMeasure",
-    "durationMillis = 4400",
-    "delay(5000)",
+    "durationMillis = 4700",
+    "delay(5200)",
     "activeDots = if (activeDots >= 4) 1 else activeDots + 1",
-    "val dotY = h * 0.83050f",
+    "makeSettledDust0298()",
+    "makeTravellingDust0298()",
+    "repeat(34)",
+    "val dotY = 0.83050f",
     "0.41369f, 0.47011f, 0.52704f, 0.58453f",
     "onFinished()",
 )
 for marker in required_splash:
     if marker not in splash:
-        raise SystemExit(f"0.2.9.7 splash marker missing: {marker}")
+        raise SystemExit(f"0.2.9.8 splash marker missing: {marker}")
 
-# User installed the first 0.2.9.6/code18 test, so the corrected test must be
-# strictly higher for clean in-place Android update installation.
+# User installed 0.2.9.7/code19, so this revised test must be strictly higher.
 g = BUILD_GRADLE.read_text(encoding="utf-8")
 if g.count("versionCode = 17") != 1 or g.count('versionName = "0.2.9.5"') != 1:
-    raise SystemExit("0.2.9.7 version bump: expected accepted build-time 0.2.9.5 state not found")
-g = g.replace("versionCode = 17", "versionCode = 19", 1)
-g = g.replace('versionName = "0.2.9.5"', 'versionName = "0.2.9.7"', 1)
+    raise SystemExit("0.2.9.8 version bump: expected accepted build-time 0.2.9.5 state not found")
+g = g.replace("versionCode = 17", "versionCode = 20", 1)
+g = g.replace('versionName = "0.2.9.5"', 'versionName = "0.2.9.8"', 1)
 BUILD_GRADLE.write_text(g, encoding="utf-8")
 
-print("Lunari 0.2.9.7 mobile portrait splash revision applied")
+print("Lunari 0.2.9.8 mobile portrait splash particle/aspect revision applied")
