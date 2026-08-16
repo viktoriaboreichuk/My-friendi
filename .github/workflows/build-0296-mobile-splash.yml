@@ -1,9 +1,16 @@
 name: Build Lunari 0.2.9.6 Mobile portrait splash
 
+# Active CI for the 0.2.9.6 mobile portrait splash patch only.
+# Path scoping prevents this historical patch workflow from firing on unrelated future PRs.
 on:
   workflow_dispatch:
   pull_request:
     branches: [ "main", "master" ]
+    paths:
+      - '.github/workflows/build-0296-mobile-splash.yml'
+      - 'Lunari-0.2.9.6-mobile-splash.png'
+      - 'app/src/main/java/com/vega/yakor/LunariSplash0296.kt'
+      - 'tools/lunari_0296_mobile_splash_patch.py'
 
 jobs:
   build:
