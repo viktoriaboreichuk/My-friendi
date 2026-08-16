@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Print uploaded splash identity
+      - name: Verify uploaded splash identity and pixels
         shell: bash
         run: |
           set -euo pipefail
@@ -21,8 +21,10 @@ jobs:
           echo "GIT_BLOB=$(git hash-object "$SPLASH")"
           echo "SHA256=$(sha256sum "$SPLASH" | awk '{print $1}')"
           echo "MAGIC=$(xxd -p -l 8 "$SPLASH")"
+          python -m pip install --quiet pillow
           python - <<'PY'
-          import struct
+          import struct, hashlib
+          from PIL import Image
           p = "Lunari-0.2.9.6-mobile-splash.png"
           with open(p, "rb") as f:
               head = f.read(24)
@@ -30,4 +32,11 @@ jobs:
               raise SystemExit("not PNG")
           width, height = struct.unpack(">II", head[16:24])
           print(f"DIMENSIONS={width}x{height}")
+          im = Image.open(p).convert("RGBA")
+          pixel_sha = hashlib.sha256(im.tobytes()).hexdigest()
+          print(f"RGBA_PIXEL_SHA256={pixel_sha}")
+          expected = "d0caabe39f115fe971eced63dde203cdbd4aa0381693e13b8719f64e83e2e5c9"
+          if pixel_sha != expected:
+              raise SystemExit("uploaded splash pixels differ from approved mobile reference")
+          print("PIXELS_MATCH_APPROVED_REFERENCE=true")
           PY
