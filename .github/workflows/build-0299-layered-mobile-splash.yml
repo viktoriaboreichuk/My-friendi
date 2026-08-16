@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.9.9 Layered mobile portrait splash
+name: Build Lunari 0.2.9.10 Layered mobile portrait splash correction
 
 on:
   workflow_dispatch:
@@ -83,7 +83,7 @@ jobs:
             cp "$f" app/src/main/res/drawable-nodpi/
           done
 
-      - name: Install exact user-supplied 0.2.9.9 splash asset pack
+      - name: Install exact user-supplied splash asset pack
         shell: bash
         run: |
           set -euo pipefail
@@ -104,6 +104,19 @@ jobs:
           cp /tmp/lunari0299-splash/lunari_splash_base_0299.webp app/src/main/res/drawable-nodpi/
           cp /tmp/lunari0299-splash/lunari_splash_atlas_0299.webp app/src/main/res/drawable-nodpi/
 
+      - name: Verify full-resolution atlas geometry before Gradle
+        shell: bash
+        run: |
+          set -euo pipefail
+          META=/tmp/lunari0299-splash/atlas_meta.json
+          grep -F '"src_atlas": [4, 4, 571, 713]' "$META"
+          grep -F '"src_atlas": [933, 721, 937, 386]' "$META"
+          grep -F '"src_atlas": [893, 1214, 915, 281]' "$META"
+          grep -F '"src_atlas": [1163, 1536, 638, 42]' "$META"
+          grep -F 'FULL-resolution atlas coordinates' tools/lunari_0299_layered_splash_patch.py
+          ! grep -F 'Sprite0299(2, 2, 286, 357' tools/lunari_0299_layered_splash_patch.py
+          ! grep -F 'Sprite0299(466, 360, 469, 193' tools/lunari_0299_layered_splash_patch.py
+
       - name: Verify preserved category artwork
         shell: bash
         run: |
@@ -112,7 +125,7 @@ jobs:
             test -s "app/src/main/res/drawable-nodpi/$f"
           done
 
-      - name: Apply Lunari 0.2.9.9 layered splash patch
+      - name: Apply Lunari 0.2.9.10 layered splash correction
         shell: bash
         run: |
           set -euo pipefail
@@ -129,8 +142,8 @@ jobs:
           SPLASH_KT="app/src/main/java/com/vega/yakor/LunariSplash0299.kt"
 
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 21' app/build.gradle.kts
-          grep -F 'versionName = "0.2.9.9"' app/build.gradle.kts
+          grep -F 'versionCode = 22' app/build.gradle.kts
+          grep -F 'versionName = "0.2.9.10"' app/build.gradle.kts
           grep -F 'val glowAlpha = if (title == "Миры" || title == "Чаты") 0.55f else 1f' "$HOME_KT"
           grep -F 'Route.Home -> LunariHomeV2(store, navigate)' app/src/main/java/com/vega/yakor/Screens.kt
 
@@ -140,6 +153,9 @@ jobs:
 
           grep -F 'R.drawable.lunari_splash_base_0299' "$SPLASH_KT"
           grep -F 'R.drawable.lunari_splash_atlas_0299' "$SPLASH_KT"
+          grep -F 'Sprite0299(4, 4, 571, 713, 41, 550, 571, 713)' "$SPLASH_KT"
+          grep -F 'Sprite0299(933, 721, 937, 386, 4, 809, 937, 386)' "$SPLASH_KT"
+          grep -F 'Sprite0299(893, 1214, 915, 281, 24, 854, 915, 281)' "$SPLASH_KT"
           grep -F 'drawSprite(TRAIL4_0299' "$SPLASH_KT"
           grep -F 'makeSettledDust0299()' "$SPLASH_KT"
           grep -F 'makeTravellingDust0299()' "$SPLASH_KT"
@@ -163,8 +179,8 @@ jobs:
           BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
           echo "$BADGING"
           echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
-          echo "$BADGING" | grep -q "versionCode='21'"
-          echo "$BADGING" | grep -q "versionName='0.2.9.9'"
+          echo "$BADGING" | grep -q "versionCode='22'"
+          echo "$BADGING" | grep -q "versionName='0.2.9.10'"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
@@ -172,7 +188,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.9.9-layered-mobile-splash-unsigned-base
+          name: lunari-0.2.9.10-layered-mobile-splash-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
