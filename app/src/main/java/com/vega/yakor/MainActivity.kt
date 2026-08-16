@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
 
                         AnimatedVisibility(
                             visible = showSplash,
-                            exit = fadeOut(animationSpec = tween(durationMillis = 360))
+                            exit = fadeOut(animationSpec = tween(durationMillis = 450))
                         ) {
                             LunariSplash0296(
                                 onFinished = { showSplash = false }
