@@ -89,14 +89,14 @@ jobs:
           set -euo pipefail
           PACK="Lunari-0.2.9.9-splash-compact-pack.zip"
           test -s "$PACK"
-          echo "7ce48ac4df31493a19bb284872a7f3c5a71c7ac38245523f5d969d7f0cf2d14f  $PACK" | sha256sum -c -
+          echo "4a8a1b53de99e30d0b3a8f588b72ce811a8fd46b841791375110c2dbc7307407  $PACK" | sha256sum -c -
           unzip -t "$PACK"
           mkdir -p app/src/main/res/drawable-nodpi
           rm -rf /tmp/lunari0299-splash && mkdir -p /tmp/lunari0299-splash
           unzip -q "$PACK" -d /tmp/lunari0299-splash
-          echo "b56aa918b3bbef56d46e1cf390518c4157bfc3024c4453173aa86770ca748c5f  lunari_splash_base_0299.webp" > /tmp/lunari0299.sha256
-          echo "2d08ab18f14b808c4c1a26c9738a9b4af9b5cef04e5fe7581c31e1387b5522a4  lunari_splash_atlas_0299.webp" >> /tmp/lunari0299.sha256
-          echo "9d1248be4f49f32c77094ffabca785b937a8e30a2f3598baef8d9fff547f3b37  atlas_meta.json" >> /tmp/lunari0299.sha256
+          echo "ee32ef118c160f8f3950bf0b7710f5b4210f249ca4c75cdadcf4db2a93f2e663  lunari_splash_base_0299.webp" > /tmp/lunari0299.sha256
+          echo "2b64f838d0a4ae88ae909d475aa245d18f90f4ae784f5a595aae680bcff25c7c  lunari_splash_atlas_0299.webp" >> /tmp/lunari0299.sha256
+          echo "36280fbc27ede1d8545b8a64482bac48dce2e2414c8c8d14c6dc404cde526239  atlas_meta.json" >> /tmp/lunari0299.sha256
           (cd /tmp/lunari0299-splash && sha256sum -c /tmp/lunari0299.sha256)
           for f in /tmp/lunari0299-splash/*.webp; do
             test "$(head -c 4 "$f")" = "RIFF"
