@@ -1,0 +1,33 @@
+name: Diagnose Lunari 0.2.9.6 splash asset
+
+on:
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  asset-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Print uploaded splash identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          SPLASH="Lunari-0.2.9.6-mobile-splash.png"
+          test -s "$SPLASH"
+          echo "SIZE=$(stat -c%s "$SPLASH")"
+          echo "GIT_BLOB=$(git hash-object "$SPLASH")"
+          echo "SHA256=$(sha256sum "$SPLASH" | awk '{print $1}')"
+          echo "MAGIC=$(xxd -p -l 8 "$SPLASH")"
+          python - <<'PY'
+          import struct
+          p = "Lunari-0.2.9.6-mobile-splash.png"
+          with open(p, "rb") as f:
+              head = f.read(24)
+          if head[:8] != b"\x89PNG\r\n\x1a\n":
+              raise SystemExit("not PNG")
+          width, height = struct.unpack(">II", head[16:24])
+          print(f"DIMENSIONS={width}x{height}")
+          PY
