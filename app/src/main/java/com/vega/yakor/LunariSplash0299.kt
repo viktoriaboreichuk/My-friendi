@@ -53,40 +53,36 @@ private const val BASE_H_0299 = 2048f
 private const val BASE_ASPECT_0299 = BASE_W_0299 / BASE_H_0299
 private const val DESIGN_Y_OFFSET_0299 = 188f
 private const val DESIGN_H_0299 = 1672f
+private const val VISUAL_DIM_02911 = 0.75f
 
 private data class Sprite0299(
     val sx: Int,
     val sy: Int,
     val sw: Int,
-    val sh: Int,
-    val dx: Int,
-    val dy: Int,
-    val dw: Int,
-    val dh: Int
+    val sh: Int
 )
 
-private val MOON_0299 = Sprite0299(4, 4, 571, 713, 41, 550, 571, 713)
-private val MOON_GLOW_0299 = Sprite0299(579, 4, 565, 650, 19, 535, 565, 650)
-private val TRAIL4_0299 = Sprite0299(4, 721, 925, 489, 16, 769, 925, 489)
-private val TRAIL3_0299 = Sprite0299(933, 721, 937, 386, 4, 809, 937, 386)
-private val TRAIL2_0299 = Sprite0299(4, 1214, 885, 318, 46, 858, 885, 318)
-private val LOGO_0299 = Sprite0299(893, 1214, 915, 281, 24, 854, 915, 281)
-private val TRAIL1_0299 = Sprite0299(4, 1536, 908, 269, 33, 826, 908, 269)
-private val STAR_0299 = Sprite0299(916, 1536, 243, 237, 235, 732, 243, 237)
-private val TAGLINE_0299 = Sprite0299(1163, 1536, 638, 42, 159, 1002, 638, 42)
+// Exact FULL-resolution atlas rectangles from the uploaded pack.
+private val MOON_0299 = Sprite0299(4, 4, 571, 713)
+private val TRAIL4_0299 = Sprite0299(4, 721, 925, 489)
+private val TRAIL3_0299 = Sprite0299(933, 721, 937, 386)
+private val TRAIL2_0299 = Sprite0299(4, 1214, 885, 318)
+private val LOGO_0299 = Sprite0299(893, 1214, 915, 281)
+private val TRAIL1_0299 = Sprite0299(4, 1536, 908, 269)
+private val STAR_0299 = Sprite0299(916, 1536, 243, 237)
+private val TAGLINE_0299 = Sprite0299(1163, 1536, 638, 42)
 
 /**
- * Lunari 0.2.9.9 layered mobile portrait splash.
+ * Lunari 0.2.9.11 reference-matched layered portrait splash.
  *
- * The user-supplied starfield/cloud/filigree pieces are pre-composited into a
- * 941x2048 portrait base without stretching or cropping them. The base itself is
- * always shown with ContentScale.Fit. If a phone aspect differs slightly, a quiet
- * procedural continuation fills only the outside area so no black letterbox bars
- * appear and the supplied artwork remains fully visible and undistorted.
+ * The supplied 941x2048 base is always fitted without cropping or stretching.
+ * The middle 941x1672 design area matches the user's portrait reference.
+ * Moon/logo/tagline start from alpha 0 and fade in gradually. The moon is rendered
+ * only once and gently twinkles; the separate moon-glow sprite is intentionally
+ * not drawn, preventing the double-crescent effect seen in 0.2.9.10.
  *
- * User PNG layers (moon/logo/tagline/star/trail stages) are packed into one alpha
- * atlas and rendered at their exact source positions. The accepted 0.2.9.8 dust
- * and glitter system is preserved above the staged trail images.
+ * The four supplied trail PNG stages are cross-faded in storyboard order rather
+ * than stacked, keeping the energy ribbon readable and preventing over-brightness.
  */
 @Composable
 fun LunariSplash0299(
@@ -100,7 +96,7 @@ fun LunariSplash0299(
     val ambientStars = remember { makeAmbientStars0299() }
     val atlas = ImageBitmap.imageResource(R.drawable.lunari_splash_atlas_0299)
 
-    val loopTransition = rememberInfiniteTransition(label = "lunari-splash-loop-0299")
+    val loopTransition = rememberInfiniteTransition(label = "lunari-splash-loop-02911")
     val loop by loopTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -108,7 +104,7 @@ fun LunariSplash0299(
             animation = tween(durationMillis = 3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "lunari-splash-loop-phase-0299"
+        label = "lunari-splash-loop-phase-02911"
     )
 
     LaunchedEffect(Unit) {
@@ -134,60 +130,57 @@ fun LunariSplash0299(
 
     val e = entrance.value.coerceIn(0f, 1f)
     val progressPercent = (e * 100f).roundToInt().coerceIn(0, 100)
-    val moonGlowAlpha = smoothStep0299(phase0299(e, 0.00f, 0.30f)) *
-        (0.78f + 0.10f * sin01_0299(loop))
-    val logoAlpha = (0.10f + 0.90f * smoothStep0299(phase0299(e, 0.16f, 0.66f)))
-        .coerceAtMost(1f)
-    val taglineAlpha = smoothStep0299(phase0299(e, 0.30f, 0.68f)).coerceIn(0f, 0.96f)
 
-    val starRise = smoothStep0299(phase0299(e, 0.61f, 0.73f))
-    val starFall = 1f - smoothStep0299(phase0299(e, 0.81f, 0.94f))
-    val starAlpha = (starRise * starFall * 0.92f + if (e > 0.94f) 0.12f * sin01_0299(loop) else 0f)
-        .coerceIn(0f, 0.92f)
+    val moonAlpha = (
+        smoothStep0299(phase0299(e, 0.00f, 0.24f)) *
+            (0.88f + 0.12f * sin01_0299(loop)) * VISUAL_DIM_02911
+        ).coerceIn(0f, VISUAL_DIM_02911)
+    val logoAlpha = (
+        smoothStep0299(phase0299(e, 0.13f, 0.47f)) * VISUAL_DIM_02911
+        ).coerceIn(0f, VISUAL_DIM_02911)
+    val taglineAlpha = (
+        smoothStep0299(phase0299(e, 0.31f, 0.64f)) * VISUAL_DIM_02911
+        ).coerceIn(0f, VISUAL_DIM_02911)
+    val starAlpha = (
+        smoothStep0299(phase0299(e, 0.08f, 0.30f)) *
+            (0.50f + 0.42f * sin01_0299(loop + 0.17f)) * VISUAL_DIM_02911
+        ).coerceIn(0f, 0.68f)
 
-    val trail1Alpha = bell0299(e, 0.10f, 0.24f, 0.42f) * 0.78f
-    val trail2Alpha = bell0299(e, 0.22f, 0.39f, 0.61f) * 0.80f
-    val trail3Alpha = bell0299(e, 0.36f, 0.57f, 0.82f) * 0.84f
-    val trail4Alpha = if (e < 0.53f) {
+    val trail1Alpha = bell0299(e, 0.17f, 0.28f, 0.41f) * 0.64f * VISUAL_DIM_02911
+    val trail2Alpha = bell0299(e, 0.34f, 0.45f, 0.57f) * 0.66f * VISUAL_DIM_02911
+    val trail3Alpha = bell0299(e, 0.50f, 0.61f, 0.73f) * 0.68f * VISUAL_DIM_02911
+    val trail4Alpha = if (e < 0.66f) {
         0f
-    } else if (e < 0.84f) {
-        smoothStep0299(phase0299(e, 0.53f, 0.84f)) * 0.82f
     } else {
-        0.52f + 0.08f * sin01_0299(loop)
+        smoothStep0299(phase0299(e, 0.66f, 0.84f)) *
+            (0.60f + 0.04f * sin01_0299(loop + 0.31f)) * VISUAL_DIM_02911
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF050817))
+            .background(Color(0xFF03050E))
     ) {
-        // Full-screen continuation only outside the fitted 941x2048 artwork.
         Canvas(Modifier.fillMaxSize()) {
-            drawRect(Color(0xFF050817))
+            drawRect(Color(0xFF03050E))
             ambientStars.forEach { s ->
                 drawCircle(
-                    color = Color(0xFFD8C8FF).copy(alpha = s.alpha),
+                    color = Color(0xFFD8C8FF).copy(alpha = s.alpha * VISUAL_DIM_02911),
                     radius = size.minDimension * s.radius,
                     center = Offset(size.width * s.x, size.height * s.y)
                 )
             }
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF6D3DA6).copy(alpha = 0.09f), Color.Transparent),
+                    colors = listOf(
+                        Color(0xFF6D3DA6).copy(alpha = 0.055f),
+                        Color.Transparent
+                    ),
                     center = Offset(size.width * 0.76f, size.height * 0.34f),
                     radius = size.width * 0.56f
                 ),
                 center = Offset(size.width * 0.76f, size.height * 0.34f),
                 radius = size.width * 0.56f
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF7650A7).copy(alpha = 0.07f), Color.Transparent),
-                    center = Offset(size.width * 0.50f, size.height * 0.94f),
-                    radius = size.width * 0.64f
-                ),
-                center = Offset(size.width * 0.50f, size.height * 0.94f),
-                radius = size.width * 0.64f
             )
         }
 
@@ -195,7 +188,8 @@ fun LunariSplash0299(
             painter = painterResource(R.drawable.lunari_splash_base_0299),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.Fit,
+            alpha = VISUAL_DIM_02911
         )
 
         Canvas(Modifier.fillMaxSize()) {
@@ -217,41 +211,45 @@ fun LunariSplash0299(
                 originY = 0f
                 originX = (viewW - fitW) * 0.5f
             }
-            val scale = fitW / BASE_W_0299
+            val baseScale = fitW / BASE_W_0299
 
-            fun drawSprite(sprite: Sprite0299, alpha: Float) {
+            fun drawPlaced(
+                sprite: Sprite0299,
+                designX: Float,
+                designY: Float,
+                spriteScale: Float,
+                alpha: Float
+            ) {
                 if (alpha <= 0.001f) return
                 drawImage(
                     image = atlas,
                     srcOffset = IntOffset(sprite.sx, sprite.sy),
                     srcSize = IntSize(sprite.sw, sprite.sh),
                     dstOffset = IntOffset(
-                        (originX + sprite.dx * scale).roundToInt(),
-                        (originY + sprite.dy * scale).roundToInt()
+                        (originX + designX * baseScale).roundToInt(),
+                        (originY + (DESIGN_Y_OFFSET_0299 + designY) * baseScale).roundToInt()
                     ),
                     dstSize = IntSize(
-                        (sprite.dw * scale).roundToInt().coerceAtLeast(1),
-                        (sprite.dh * scale).roundToInt().coerceAtLeast(1)
+                        (sprite.sw * spriteScale * baseScale).roundToInt().coerceAtLeast(1),
+                        (sprite.sh * spriteScale * baseScale).roundToInt().coerceAtLeast(1)
                     ),
                     alpha = alpha.coerceIn(0f, 1f)
                 )
             }
 
             fun mapDesign(nx: Float, ny: Float): Offset = Offset(
-                originX + (BASE_W_0299 * nx) * scale,
-                originY + (DESIGN_Y_OFFSET_0299 + DESIGN_H_0299 * ny) * scale
+                originX + (BASE_W_0299 * nx) * baseScale,
+                originY + (DESIGN_Y_OFFSET_0299 + DESIGN_H_0299 * ny) * baseScale
             )
 
-            drawSprite(MOON_0299, 0.94f)
-            drawSprite(MOON_GLOW_0299, moonGlowAlpha)
+            drawPlaced(MOON_0299, designX = 75f, designY = 395f, spriteScale = 0.735f, alpha = moonAlpha)
 
-            drawSprite(TRAIL1_0299, trail1Alpha)
-            drawSprite(TRAIL2_0299, trail2Alpha)
-            drawSprite(TRAIL3_0299, trail3Alpha)
-            drawSprite(TRAIL4_0299, trail4Alpha)
+            drawPlaced(TRAIL1_0299, designX = 251f, designY = 665f, spriteScale = 0.66f, alpha = trail1Alpha)
+            drawPlaced(TRAIL2_0299, designX = 266f, designY = 650f, spriteScale = 0.66f, alpha = trail2Alpha)
+            drawPlaced(TRAIL3_0299, designX = 232f, designY = 625f, spriteScale = 0.66f, alpha = trail3Alpha)
+            drawPlaced(TRAIL4_0299, designX = 239f, designY = 590f, spriteScale = 0.66f, alpha = trail4Alpha)
 
-            // Preserve the accepted 0.2.9.8 dust/glitter effect.
-            val trailProgress = smoothStep0299(phase0299(e, 0.12f, 0.88f))
+            val trailProgress = smoothStep0299(phase0299(e, 0.18f, 0.90f))
             settledDust.forEach { particle ->
                 val gate = smoothStep0299(phase0299(trailProgress, particle.t - 0.10f, particle.t + 0.11f))
                 if (gate > 0f) {
@@ -259,7 +257,8 @@ fun LunariSplash0299(
                     val center = mapDesign(path.first + particle.offsetX, path.second + particle.offsetY)
                     val pulse = 0.42f + 0.58f * sin01_0299(loop + particle.phase)
                     val settle = if (e < 0.96f) 1f else 0.66f + 0.22f * pulse
-                    val alpha = (particle.alpha * gate * pulse * settle).coerceIn(0f, 0.90f)
+                    val alpha = (particle.alpha * gate * pulse * settle * VISUAL_DIM_02911)
+                        .coerceIn(0f, 0.62f)
                     drawSparkle0299(center, fitW * particle.size, alpha, particle.cross, fitW)
                 }
             }
@@ -275,44 +274,45 @@ fun LunariSplash0299(
                         path.first + particle.offsetX * (1f - 0.35f * eased),
                         path.second + particle.offsetY
                     )
-                    val alpha = (particle.alpha * envelope).coerceIn(0f, 0.92f)
+                    val alpha = (particle.alpha * envelope * VISUAL_DIM_02911)
+                        .coerceIn(0f, 0.66f)
                     drawSparkle0299(center, fitW * particle.size, alpha, particle.cross, fitW)
                 }
             }
 
             val curlGate = smoothStep0299(phase0299(trailProgress, 0.58f, 0.92f))
             if (curlGate > 0f) {
-                repeat(34) { index ->
-                    val u = index / 33f
+                repeat(28) { index ->
+                    val u = index / 27f
                     val angle = -0.6f + u * 4.65f + loop * 0.16f
-                    val radius = fitW * (0.095f * (1f - 0.48f * u))
-                    val c = mapDesign(0.835f, 0.462f)
+                    val radius = fitW * (0.078f * (1f - 0.48f * u))
+                    val c = mapDesign(0.76f, 0.445f)
                     val p = Offset(
                         c.x + cos(angle) * radius,
                         c.y + sin(angle) * radius * 0.55f
                     )
                     val pulse = 0.48f + 0.52f * sin01_0299(loop + index * 0.091f)
-                    val a = curlGate * pulse * (0.22f + (index % 5) * 0.08f)
+                    val a = curlGate * pulse * (0.18f + (index % 5) * 0.055f) * VISUAL_DIM_02911
                     drawSparkle0299(
                         p,
-                        fitW * (0.0017f + (index % 4) * 0.0008f),
-                        a.coerceAtMost(0.86f),
+                        fitW * (0.00145f + (index % 4) * 0.00065f),
+                        a.coerceAtMost(0.54f),
                         index % 7 == 0,
                         fitW
                     )
                 }
             }
 
-            drawSprite(LOGO_0299, logoAlpha)
-            drawSprite(STAR_0299, starAlpha)
-            drawSprite(TAGLINE_0299, taglineAlpha)
+            drawPlaced(LOGO_0299, designX = 190f, designY = 635f, spriteScale = 0.74f, alpha = logoAlpha)
+            drawPlaced(STAR_0299, designX = 331f, designY = 567f, spriteScale = 0.185f, alpha = starAlpha)
+            drawPlaced(TAGLINE_0299, designX = 215f, designY = 925f, spriteScale = 0.95f, alpha = taglineAlpha)
         }
 
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 62.dp),
+                .padding(bottom = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -326,7 +326,7 @@ fun LunariSplash0299(
             Spacer(Modifier.height(22.dp))
             Text(
                 text = "Загрузка... $progressPercent%",
-                color = Color(0xFFD9C9F3),
+                color = Color(0xFFD9C9F3).copy(alpha = VISUAL_DIM_02911),
                 fontSize = 18.sp
             )
         }
@@ -343,7 +343,7 @@ private fun LoadingDot0299(active: Boolean) {
             center = c
         )
         drawCircle(
-            color = Color(0xFF443553).copy(alpha = 0.95f),
+            color = Color(0xFF443553).copy(alpha = 0.72f),
             radius = size.minDimension * 0.44f,
             center = c,
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.minDimension * 0.06f)
@@ -352,9 +352,9 @@ private fun LoadingDot0299(active: Boolean) {
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.98f),
-                        Color(0xFFDEBFFF).copy(alpha = 0.94f),
-                        Color(0xFF8A56D6).copy(alpha = 0.28f),
+                        Color.White.copy(alpha = 0.78f),
+                        Color(0xFFDEBFFF).copy(alpha = 0.72f),
+                        Color(0xFF8A56D6).copy(alpha = 0.20f),
                         Color.Transparent
                     ),
                     center = c,
@@ -364,7 +364,7 @@ private fun LoadingDot0299(active: Boolean) {
                 center = c
             )
             drawCircle(
-                color = Color(0xFFF6ECFF),
+                color = Color(0xFFF6ECFF).copy(alpha = 0.82f),
                 radius = size.minDimension * 0.34f,
                 center = c
             )
@@ -450,15 +450,15 @@ private fun lunarParticlePath0299(tRaw: Float): Pair<Float, Float> {
     val t = tRaw.coerceIn(0f, 1f)
     return if (t < 0.71f) {
         val u = t / 0.71f
-        val x = 0.17f + 0.61f * u
-        val y = 0.470f + 0.036f * sin((PI * u).toFloat()) + 0.004f * u
+        val x = 0.22f + 0.55f * u
+        val y = 0.445f + 0.030f * sin((PI * u).toFloat()) + 0.003f * u
         x to y
     } else {
         val u = (t - 0.71f) / 0.29f
         val angle = -0.72f + u * 4.48f
-        val radius = 0.104f * (1f - 0.48f * u)
-        val cx = 0.80f + 0.035f * u
-        val cy = 0.468f - 0.018f * u
+        val radius = 0.082f * (1f - 0.48f * u)
+        val cx = 0.75f + 0.028f * u
+        val cy = 0.444f - 0.014f * u
         val x = cx + radius * cos(angle)
         val y = cy + radius * 0.53f * sin(angle)
         x to y
@@ -477,9 +477,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSparkle0299(
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color.White.copy(alpha = alpha.coerceAtMost(0.94f)),
-                Color(0xFFE6D0FF).copy(alpha = alpha * 0.68f),
-                Color(0xFF9A64E7).copy(alpha = alpha * 0.14f),
+                Color.White.copy(alpha = alpha.coerceAtMost(0.76f)),
+                Color(0xFFE6D0FF).copy(alpha = alpha * 0.58f),
+                Color(0xFF9A64E7).copy(alpha = alpha * 0.10f),
                 Color.Transparent
             ),
             center = center,
@@ -489,20 +489,20 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSparkle0299(
         radius = radius * 3.3f
     )
     drawCircle(
-        color = Color(0xFFF8F0FF).copy(alpha = (alpha * 0.92f).coerceAtMost(0.92f)),
+        color = Color(0xFFF8F0FF).copy(alpha = (alpha * 0.76f).coerceAtMost(0.72f)),
         center = center,
         radius = radius
     )
     if (cross) {
         val half = radius * crossScale
         drawLine(
-            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.78f),
+            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.62f),
             start = Offset(center.x - half, center.y),
             end = Offset(center.x + half, center.y),
             strokeWidth = fitW * 0.0009f
         )
         drawLine(
-            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.78f),
+            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.62f),
             start = Offset(center.x, center.y - half),
             end = Offset(center.x, center.y + half),
             strokeWidth = fitW * 0.0009f
