@@ -24,21 +24,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
+
+private const val SPLASH_ASPECT_0298 = 941f / 1672f
 
 /**
- * Mobile portrait splash revision for the 0.2.9.7 test build.
+ * Lunari 0.2.9.8 mobile portrait splash revision.
  *
- * The approved 941x1672 artwork remains the visual base. Animation follows the
- * storyboard more literally than the first test: moon wake-up -> several lunar
- * ribbons grow under the logo -> dust/particles fill the curl -> logo/star gain
- * light -> quiet loop. The heavy entrance plays once and lasts about 4.4s; the
- * splash stays up for a minimum of 5s before fading to the already composed app.
+ * 1) The approved 941x1672 composition is no longer stretched: the foreground
+ *    always uses ContentScale.Fit. A dim Crop copy only fills extra device space.
+ * 2) The lunar effect is particle-first: broad low-alpha ribbons + dense travelling
+ *    dust + settled glitter + right-hand curl burst. No single bright "strip" trail.
  */
 @Composable
 fun LunariSplash0296(
@@ -47,35 +53,36 @@ fun LunariSplash0296(
 ) {
     val entrance = remember { Animatable(0f) }
     var activeDots by remember { mutableIntStateOf(1) }
+    val settledDust = remember { makeSettledDust0298() }
+    val travellingDust = remember { makeTravellingDust0298() }
 
-    val loopTransition = rememberInfiniteTransition(label = "lunari-splash-loop")
+    val loopTransition = rememberInfiniteTransition(label = "lunari-splash-loop-0298")
     val loop by loopTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "lunari-splash-breathe"
+        label = "lunari-splash-loop-phase-0298"
     )
 
     LaunchedEffect(Unit) {
         entrance.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 4400, easing = LinearEasing)
+            animationSpec = tween(durationMillis = 4700, easing = LinearEasing)
         )
     }
 
     LaunchedEffect(Unit) {
         while (isActive) {
-            delay(520)
+            delay(550)
             activeDots = if (activeDots >= 4) 1 else activeDots + 1
         }
     }
 
     LaunchedEffect(Unit) {
-        // Minimum viewing time requested for this revision.
-        delay(5000)
+        delay(5200)
         onFinished()
     }
 
@@ -84,236 +91,217 @@ fun LunariSplash0296(
             .fillMaxSize()
             .background(Color(0xFF050817))
     ) {
+        // Fills tall/narrow phone area without deforming the approved artwork.
         Image(
             painter = painterResource(R.drawable.lunari_splash_mobile_0296),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.Crop,
+            alpha = 0.30f
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xAA050817))
+        )
+
+        // The actual approved composition: preserve its exact aspect ratio.
+        Image(
+            painter = painterResource(R.drawable.lunari_splash_mobile_0296),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit
         )
 
         Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
             val e = entrance.value.coerceIn(0f, 1f)
+            val viewW = size.width
+            val viewH = size.height
+            val viewAspect = viewW / viewH
 
-            val moonProgress = smoothStep(phase(e, 0.00f, 0.22f))
-            val ribbon1Progress = smoothStep(phase(e, 0.10f, 0.56f))
-            val ribbon2Progress = smoothStep(phase(e, 0.20f, 0.68f))
-            val ribbon3Progress = smoothStep(phase(e, 0.30f, 0.80f))
-            val logoProgress = smoothStep(phase(e, 0.30f, 0.82f))
+            val fitW: Float
+            val fitH: Float
+            val originX: Float
+            val originY: Float
+            if (viewAspect < SPLASH_ASPECT_0298) {
+                fitW = viewW
+                fitH = viewW / SPLASH_ASPECT_0298
+                originX = 0f
+                originY = (viewH - fitH) * 0.5f
+            } else {
+                fitH = viewH
+                fitW = viewH * SPLASH_ASPECT_0298
+                originY = 0f
+                originX = (viewW - fitW) * 0.5f
+            }
 
-            // Moon wakes first: restrained glow only, no flash and no large fog.
-            val moonBreath = 0.90f + loop * 0.10f
+            fun map(nx: Float, ny: Float): Offset = Offset(
+                originX + fitW * nx,
+                originY + fitH * ny
+            )
+
+            val moonProgress = smoothStep0298(phase0298(e, 0.00f, 0.22f))
+            val trailProgress = smoothStep0298(phase0298(e, 0.13f, 0.84f))
+            val logoProgress = smoothStep0298(phase0298(e, 0.43f, 0.88f))
+
+            // Moon wakes softly first.
+            val moonCenter = map(0.235f, 0.395f)
+            val moonBreath = 0.92f + 0.08f * sin01(loop)
             val moonAlpha = moonProgress * moonBreath
-            val moonCenter = Offset(w * 0.235f, h * 0.395f)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFF8F2FF).copy(alpha = 0.13f * moonAlpha),
-                        Color(0xFFC5A5FF).copy(alpha = 0.065f * moonAlpha),
+                        Color(0xFFF9F2FF).copy(alpha = 0.14f * moonAlpha),
+                        Color(0xFFC7A8FF).copy(alpha = 0.055f * moonAlpha),
                         Color.Transparent
                     ),
                     center = moonCenter,
-                    radius = w * 0.22f
+                    radius = fitW * 0.205f
                 ),
-                radius = w * 0.22f,
-                center = moonCenter
+                center = moonCenter,
+                radius = fitW * 0.205f
             )
 
-            // The storyboard reads as a luminous ribbon, not a single line.
-            // Build three related curves with staggered reveal timings.
-            val path1 = AndroidPath().apply {
-                moveTo(w * 0.175f, h * 0.492f)
-                cubicTo(w * 0.31f, h * 0.470f, w * 0.43f, h * 0.518f, w * 0.59f, h * 0.503f)
-                cubicTo(w * 0.71f, h * 0.492f, w * 0.82f, h * 0.455f, w * 0.884f, h * 0.429f)
-                cubicTo(w * 0.927f, h * 0.411f, w * 0.942f, h * 0.452f, w * 0.885f, h * 0.478f)
-            }
-            val path2 = AndroidPath().apply {
-                moveTo(w * 0.190f, h * 0.481f)
-                cubicTo(w * 0.34f, h * 0.494f, w * 0.47f, h * 0.505f, w * 0.62f, h * 0.489f)
-                cubicTo(w * 0.74f, h * 0.476f, w * 0.86f, h * 0.428f, w * 0.902f, h * 0.444f)
-                cubicTo(w * 0.936f, h * 0.457f, w * 0.912f, h * 0.486f, w * 0.858f, h * 0.488f)
-            }
-            val path3 = AndroidPath().apply {
-                moveTo(w * 0.205f, h * 0.501f)
-                cubicTo(w * 0.34f, h * 0.519f, w * 0.50f, h * 0.527f, w * 0.65f, h * 0.505f)
-                cubicTo(w * 0.79f, h * 0.485f, w * 0.900f, h * 0.445f, w * 0.925f, h * 0.413f)
-                cubicTo(w * 0.953f, h * 0.379f, w * 0.972f, h * 0.454f, w * 0.900f, h * 0.490f)
-            }
+            // Three broad, low-alpha ribbons. These are deliberately secondary;
+            // the readable effect comes from the dust field, not a bright line.
+            val ribbonPaths = buildRibbonPaths0298(::map)
+            val ribbonStarts = listOf(0.00f, 0.08f, 0.17f)
+            val ribbonEnds = listOf(0.82f, 0.92f, 1.00f)
+            val ribbonWidths = listOf(0.020f, 0.010f, 0.0042f)
+            val ribbonAlphas = listOf(0.075f, 0.13f, 0.24f)
 
-            val measures = listOf(
-                PathMeasure(path1, false) to ribbon1Progress,
-                PathMeasure(path2, false) to ribbon2Progress,
-                PathMeasure(path3, false) to ribbon3Progress
-            )
-
-            measures.forEachIndexed { index, (measure, progress) ->
-                if (progress <= 0.001f) return@forEachIndexed
-                val segment = AndroidPath()
-                measure.getSegment(0f, measure.length * progress, segment, true)
-                val cp = segment.asComposePath()
-                val settle = if (e < 0.94f) 1f else 0.70f + loop * 0.12f
-                val intensity = when (index) {
-                    0 -> 1.00f
-                    1 -> 0.78f
-                    else -> 0.62f
-                }
-
-                drawPath(
-                    path = cp,
-                    color = Color(0xFF7E3EEA).copy(alpha = 0.10f * intensity * settle),
-                    style = Stroke(width = w * (0.027f - index * 0.003f))
-                )
-                drawPath(
-                    path = cp,
-                    color = Color(0xFFA85DFF).copy(alpha = 0.30f * intensity * settle),
-                    style = Stroke(width = w * (0.0105f - index * 0.0015f))
-                )
-                drawPath(
-                    path = cp,
-                    color = Color(0xFFE4CEFF).copy(alpha = 0.78f * intensity * settle),
-                    style = Stroke(width = w * (0.0028f - index * 0.00035f))
-                )
-
-                // A bright moving head makes the motion readable like the storyboard.
-                val tip = FloatArray(2)
-                if (measure.getPosTan(measure.length * progress, tip, null)) {
-                    val tipOffset = Offset(tip[0], tip[1])
-                    drawCircle(
-                        brush = Brush.radialGradient(
+            ribbonPaths.forEachIndexed { index, rawPath ->
+                val local = smoothStep0298(phase0298(trailProgress, ribbonStarts[index], ribbonEnds[index]))
+                if (local > 0f) {
+                    val measure = PathMeasure(rawPath, false)
+                    val segment = AndroidPath()
+                    measure.getSegment(0f, measure.length * local, segment, true)
+                    val composePath = segment.asComposePath()
+                    val settle = if (e < 0.96f) 1f else 0.72f + 0.18f * sin01(loop + index * 0.17f)
+                    drawPath(
+                        path = composePath,
+                        brush = Brush.linearGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.90f * intensity),
-                                Color(0xFFC790FF).copy(alpha = 0.44f * intensity),
-                                Color.Transparent
+                                Color(0xFFB98CFF).copy(alpha = ribbonAlphas[index] * 0.58f * settle),
+                                Color(0xFFE1C9FF).copy(alpha = ribbonAlphas[index] * settle),
+                                Color(0xFF8C4DE8).copy(alpha = ribbonAlphas[index] * 0.72f * settle)
                             ),
-                            center = tipOffset,
-                            radius = w * 0.033f
+                            start = map(0.15f, 0.49f),
+                            end = map(0.91f, 0.45f)
                         ),
-                        center = tipOffset,
-                        radius = w * 0.033f
+                        style = Stroke(
+                            width = fitW * ribbonWidths[index],
+                            cap = StrokeCap.Round
+                        )
                     )
                 }
             }
 
-            // Particle train follows the main ribbon, then settles into a quiet shimmer.
-            val mainMeasure = PathMeasure(path1, false)
-            for (i in 0 until 18) {
-                val lag = i * 0.033f
-                val p = (ribbon1Progress - lag).coerceIn(0f, 1f)
-                if (p <= 0.015f) continue
-                val pos = FloatArray(2)
-                if (mainMeasure.getPosTan(mainMeasure.length * p, pos, null)) {
-                    val wobble = ((i % 5) - 2) * w * 0.0042f
-                    val pulse = if (i % 2 == 0) loop else 1f - loop
-                    val center = Offset(pos[0], pos[1] + wobble)
-                    val radius = w * (0.0018f + (i % 4) * 0.0007f)
-                    drawCircle(
-                        color = Color(0xFFE7D2FF).copy(alpha = (0.28f + pulse * 0.42f) * p),
-                        radius = radius,
-                        center = center
-                    )
-                }
-            }
-
-            // Additional dust blooms progressively around the right-hand curl.
-            val curlDust = listOf(
-                0.55f to 0.506f,
-                0.61f to 0.499f,
-                0.67f to 0.489f,
-                0.72f to 0.477f,
-                0.77f to 0.462f,
-                0.81f to 0.447f,
-                0.85f to 0.433f,
-                0.89f to 0.427f,
-                0.91f to 0.445f,
-                0.89f to 0.469f,
-                0.85f to 0.484f,
-                0.79f to 0.493f
-            )
-            curlDust.forEachIndexed { index, (nx, ny) ->
-                val gate = smoothStep(phase(ribbon3Progress, index * 0.052f, index * 0.052f + 0.25f))
+            // Settled moon dust: many particles accumulate behind/around the flow.
+            settledDust.forEach { particle ->
+                val gate = smoothStep0298(phase0298(trailProgress, particle.t - 0.10f, particle.t + 0.11f))
                 if (gate > 0f) {
-                    val pulse = 0.52f + 0.48f * if (index % 2 == 0) loop else 1f - loop
-                    drawCircle(
-                        color = Color(0xFFEAD9FF).copy(alpha = 0.58f * gate * pulse),
-                        radius = w * (0.0023f + (index % 3) * 0.0010f),
-                        center = Offset(w * nx, h * ny)
+                    val path = lunarParticlePath0298(particle.t)
+                    val center = map(
+                        path.first + particle.offsetX,
+                        path.second + particle.offsetY
+                    )
+                    val pulse = 0.42f + 0.58f * sin01(loop + particle.phase)
+                    val settle = if (e < 0.96f) 1f else 0.64f + 0.24f * pulse
+                    val alpha = (particle.alpha * gate * pulse * settle).coerceIn(0f, 0.90f)
+                    drawSparkle0298(
+                        center = center,
+                        radius = fitW * particle.size,
+                        alpha = alpha,
+                        cross = particle.cross,
+                        fitW = fitW
                     )
                 }
             }
 
-            // Logo itself stays fixed. Passing moonlight raises its local luminosity.
-            val logoBreath = 0.91f + loop * 0.09f
-            val logoCenter = Offset(w * 0.55f, h * 0.445f)
+            // Travelling dust: particles move forward along the ribbon and fade,
+            // giving the actual sweep/flow requested by the storyboard.
+            travellingDust.forEach { particle ->
+                val local = phase0298(trailProgress, particle.spawn, particle.spawn + particle.life)
+                if (local in 0.001f..0.999f) {
+                    val eased = smoothStep0298(local)
+                    val pathT = (particle.spawn + eased * particle.travel).coerceIn(0f, 1f)
+                    val path = lunarParticlePath0298(pathT)
+                    val envelope = sin((PI * local).toFloat()).coerceAtLeast(0f)
+                    val center = map(
+                        path.first + particle.offsetX * (1f - 0.35f * eased),
+                        path.second + particle.offsetY
+                    )
+                    val alpha = (particle.alpha * envelope).coerceIn(0f, 0.92f)
+                    drawSparkle0298(
+                        center = center,
+                        radius = fitW * particle.size,
+                        alpha = alpha,
+                        cross = particle.cross,
+                        fitW = fitW
+                    )
+                }
+            }
+
+            // Dense right-hand curl burst: strongest sparkle cloud in frames 3-5.
+            val curlGate = smoothStep0298(phase0298(trailProgress, 0.58f, 0.92f))
+            if (curlGate > 0f) {
+                repeat(34) { index ->
+                    val u = index / 33f
+                    val angle = -0.6f + u * 4.65f + loop * 0.16f
+                    val radius = fitW * (0.095f * (1f - 0.48f * u))
+                    val c = map(0.835f, 0.462f)
+                    val p = Offset(
+                        c.x + cos(angle) * radius,
+                        c.y + sin(angle) * radius * 0.55f
+                    )
+                    val pulse = 0.48f + 0.52f * sin01(loop + index * 0.091f)
+                    val a = curlGate * pulse * (0.22f + (index % 5) * 0.08f)
+                    drawSparkle0298(
+                        center = p,
+                        radius = fitW * (0.0017f + (index % 4) * 0.0008f),
+                        alpha = a.coerceAtMost(0.86f),
+                        cross = index % 7 == 0,
+                        fitW = fitW
+                    )
+                }
+            }
+
+            // Logo luminosity follows the passing dust.
+            val logoCenter = map(0.55f, 0.447f)
+            val logoPulse = 0.92f + 0.08f * sin01(loop + 0.21f)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFF0E6FF).copy(alpha = 0.090f * logoProgress * logoBreath),
-                        Color(0xFFAA78F2).copy(alpha = 0.032f * logoProgress * logoBreath),
+                        Color(0xFFF0E6FF).copy(alpha = 0.075f * logoProgress * logoPulse),
+                        Color(0xFFAA78F2).copy(alpha = 0.024f * logoProgress * logoPulse),
                         Color.Transparent
                     ),
                     center = logoCenter,
-                    radius = w * 0.40f
+                    radius = fitW * 0.38f
                 ),
                 center = logoCenter,
-                radius = w * 0.40f
+                radius = fitW * 0.38f
             )
 
-            // Small star accent near the logo: one readable pulse late in the entrance.
-            val starRise = smoothStep(phase(e, 0.69f, 0.79f))
-            val starFall = 1f - smoothStep(phase(e, 0.82f, 0.95f))
+            // One soft star accent late in the entrance.
+            val starRise = smoothStep0298(phase0298(e, 0.70f, 0.79f))
+            val starFall = 1f - smoothStep0298(phase0298(e, 0.82f, 0.95f))
             val starAccent = (starRise * starFall).coerceIn(0f, 1f)
-            val starAlpha = (0.12f + starAccent * 0.74f + loop * 0.04f).coerceAtMost(0.88f)
-            val star = Offset(w * 0.374f, h * 0.354f)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.78f * starAlpha),
-                        Color(0xFFC8A5FF).copy(alpha = 0.22f * starAlpha),
-                        Color.Transparent
-                    ),
-                    center = star,
-                    radius = w * 0.047f
-                ),
+            val starAlpha = (0.12f + 0.74f * starAccent + 0.035f * sin01(loop)).coerceIn(0.08f, 0.88f)
+            val star = map(0.374f, 0.354f)
+            drawSparkle0298(
                 center = star,
-                radius = w * 0.047f
-            )
-            drawLine(
-                color = Color(0xFFF7EEFF).copy(alpha = starAlpha),
-                start = Offset(star.x - w * 0.030f, star.y),
-                end = Offset(star.x + w * 0.030f, star.y),
-                strokeWidth = w * 0.0012f
-            )
-            drawLine(
-                color = Color(0xFFF7EEFF).copy(alpha = starAlpha),
-                start = Offset(star.x, star.y - w * 0.030f),
-                end = Offset(star.x, star.y + w * 0.030f),
-                strokeWidth = w * 0.0012f
+                radius = fitW * 0.010f,
+                alpha = starAlpha,
+                cross = true,
+                fitW = fitW,
+                crossScale = 4.4f
             )
 
-            // Quiet star micro-animation only; ornaments/clouds remain static.
-            val microStars = listOf(
-                0.290f to 0.181f,
-                0.659f to 0.184f,
-                0.748f to 0.301f,
-                0.293f to 0.610f,
-                0.744f to 0.603f,
-                0.572f to 0.667f
-            )
-            microStars.forEachIndexed { index, (nx, ny) ->
-                val pulse = if (index % 2 == 0) loop else 1f - loop
-                drawCircle(
-                    color = Color(0xFFE7D7FF).copy(alpha = 0.10f + pulse * 0.20f),
-                    radius = w * 0.0021f,
-                    center = Offset(w * nx, h * ny)
-                )
-            }
-
-            // Exact centers measured from the approved 941x1672 artwork.
-            // First erase the four baked static dots at their real coordinates,
-            // then draw one animated row in exactly the same place (no ghost row).
-            val dotY = h * 0.83050f
+            // One clean loading-dot row. Mask baked static dots at exact image coords.
             val dotXs = floatArrayOf(0.41369f, 0.47011f, 0.52704f, 0.58453f)
+            val dotY = 0.83050f
             val localBackgrounds = listOf(
                 Color(0xFF111432),
                 Color(0xFF302D59),
@@ -321,41 +309,41 @@ fun LunariSplash0296(
                 Color(0xFF141438)
             )
             dotXs.forEachIndexed { index, nx ->
-                val center = Offset(w * nx, dotY)
+                val center = map(nx, dotY)
                 val bg = localBackgrounds[index]
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(bg, bg, bg.copy(alpha = 0f)),
                         center = center,
-                        radius = w * 0.033f
+                        radius = fitW * 0.031f
                     ),
-                    radius = w * 0.033f,
-                    center = center
+                    center = center,
+                    radius = fitW * 0.031f
                 )
                 drawCircle(
-                    color = Color(0xFF685983).copy(alpha = 0.78f),
-                    radius = w * 0.0118f,
-                    center = center
+                    color = Color(0xFF685983).copy(alpha = 0.76f),
+                    center = center,
+                    radius = fitW * 0.0115f
                 )
                 if (index < activeDots) {
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
                                 Color.White.copy(alpha = 0.97f),
-                                Color(0xFFDABFFF).copy(alpha = 0.88f),
-                                Color(0xFF9B6BE8).copy(alpha = 0.18f),
+                                Color(0xFFDABFFF).copy(alpha = 0.86f),
+                                Color(0xFF9B6BE8).copy(alpha = 0.17f),
                                 Color.Transparent
                             ),
                             center = center,
-                            radius = w * 0.024f
+                            radius = fitW * 0.0235f
                         ),
-                        radius = w * 0.024f,
-                        center = center
+                        center = center,
+                        radius = fitW * 0.0235f
                     )
                     drawCircle(
                         color = Color(0xFFF4EBFF),
-                        radius = w * 0.0098f,
-                        center = center
+                        center = center,
+                        radius = fitW * 0.0096f
                     )
                 }
             }
@@ -363,12 +351,159 @@ fun LunariSplash0296(
     }
 }
 
-private fun phase(value: Float, start: Float, end: Float): Float {
+private data class SettledDust0298(
+    val t: Float,
+    val offsetX: Float,
+    val offsetY: Float,
+    val size: Float,
+    val alpha: Float,
+    val phase: Float,
+    val cross: Boolean
+)
+
+private data class TravellingDust0298(
+    val spawn: Float,
+    val life: Float,
+    val travel: Float,
+    val offsetX: Float,
+    val offsetY: Float,
+    val size: Float,
+    val alpha: Float,
+    val cross: Boolean
+)
+
+private fun makeSettledDust0298(): List<SettledDust0298> {
+    val random = Random(29801)
+    return List(154) {
+        val t = random.nextFloat()
+        val spread = if (t > 0.70f) 1.35f else 1f
+        SettledDust0298(
+            t = t,
+            offsetX = (random.nextFloat() - 0.5f) * 0.034f * spread,
+            offsetY = (random.nextFloat() - 0.5f) * 0.044f * spread,
+            size = 0.00135f + random.nextFloat() * 0.0030f,
+            alpha = 0.30f + random.nextFloat() * 0.55f,
+            phase = random.nextFloat(),
+            cross = random.nextFloat() > 0.88f
+        )
+    }.sortedBy { it.t }
+}
+
+private fun makeTravellingDust0298(): List<TravellingDust0298> {
+    val random = Random(29802)
+    return List(92) {
+        val spawn = random.nextFloat() * 0.84f
+        TravellingDust0298(
+            spawn = spawn,
+            life = 0.14f + random.nextFloat() * 0.12f,
+            travel = 0.08f + random.nextFloat() * 0.13f,
+            offsetX = (random.nextFloat() - 0.5f) * 0.020f,
+            offsetY = (random.nextFloat() - 0.5f) * 0.026f,
+            size = 0.0015f + random.nextFloat() * 0.0035f,
+            alpha = 0.46f + random.nextFloat() * 0.46f,
+            cross = random.nextFloat() > 0.82f
+        )
+    }.sortedBy { it.spawn }
+}
+
+private fun buildRibbonPaths0298(map: (Float, Float) -> Offset): List<AndroidPath> {
+    fun make(offsetY: Float): AndroidPath {
+        val p0 = map(0.16f, 0.470f + offsetY)
+        val p1 = map(0.31f, 0.492f + offsetY)
+        val p2 = map(0.50f, 0.520f + offsetY)
+        val p3 = map(0.69f, 0.492f + offsetY)
+        val p4 = map(0.80f, 0.478f + offsetY)
+        val p5 = map(0.88f, 0.431f + offsetY)
+        val p6 = map(0.915f, 0.438f + offsetY)
+        val p7 = map(0.965f, 0.451f + offsetY)
+        val p8 = map(0.944f, 0.511f + offsetY)
+        val p9 = map(0.876f, 0.514f + offsetY)
+        val p10 = map(0.826f, 0.493f + offsetY)
+        val p11 = map(0.865f, 0.465f + offsetY)
+        return AndroidPath().apply {
+            moveTo(p0.x, p0.y)
+            cubicTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
+            cubicTo(p4.x, p4.y, p5.x, p5.y, p6.x, p6.y)
+            cubicTo(p7.x, p7.y, p8.x, p8.y, p9.x, p9.y)
+            cubicTo(p10.x, p10.y, p10.x, p10.y, p11.x, p11.y)
+        }
+    }
+    return listOf(make(0.010f), make(0.000f), make(-0.011f))
+}
+
+/** Normalized path for the dense dust cloud, including the right-hand curl. */
+private fun lunarParticlePath0298(tRaw: Float): Pair<Float, Float> {
+    val t = tRaw.coerceIn(0f, 1f)
+    return if (t < 0.71f) {
+        val u = t / 0.71f
+        val x = 0.17f + 0.61f * u
+        val y = 0.470f + 0.036f * sin((PI * u).toFloat()) + 0.004f * u
+        x to y
+    } else {
+        val u = (t - 0.71f) / 0.29f
+        val angle = -0.72f + u * 4.48f
+        val radius = 0.104f * (1f - 0.48f * u)
+        val cx = 0.80f + 0.035f * u
+        val cy = 0.468f - 0.018f * u
+        val x = cx + radius * cos(angle)
+        val y = cy + radius * 0.53f * sin(angle)
+        x to y
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSparkle0298(
+    center: Offset,
+    radius: Float,
+    alpha: Float,
+    cross: Boolean,
+    fitW: Float,
+    crossScale: Float = 2.7f
+) {
+    if (alpha <= 0f) return
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                Color.White.copy(alpha = alpha.coerceAtMost(0.94f)),
+                Color(0xFFE6D0FF).copy(alpha = alpha * 0.68f),
+                Color(0xFF9A64E7).copy(alpha = alpha * 0.14f),
+                Color.Transparent
+            ),
+            center = center,
+            radius = radius * 3.3f
+        ),
+        center = center,
+        radius = radius * 3.3f
+    )
+    drawCircle(
+        color = Color(0xFFF8F0FF).copy(alpha = (alpha * 0.92f).coerceAtMost(0.92f)),
+        center = center,
+        radius = radius
+    )
+    if (cross) {
+        val half = radius * crossScale
+        drawLine(
+            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.78f),
+            start = Offset(center.x - half, center.y),
+            end = Offset(center.x + half, center.y),
+            strokeWidth = fitW * 0.0009f
+        )
+        drawLine(
+            color = Color(0xFFF8EEFF).copy(alpha = alpha * 0.78f),
+            start = Offset(center.x, center.y - half),
+            end = Offset(center.x, center.y + half),
+            strokeWidth = fitW * 0.0009f
+        )
+    }
+}
+
+private fun phase0298(value: Float, start: Float, end: Float): Float {
     if (end <= start) return if (value >= end) 1f else 0f
     return ((value - start) / (end - start)).coerceIn(0f, 1f)
 }
 
-private fun smoothStep(value: Float): Float {
+private fun smoothStep0298(value: Float): Float {
     val t = value.coerceIn(0f, 1f)
     return t * t * (3f - 2f * t)
 }
+
+private fun sin01(value: Float): Float = 0.5f + 0.5f * sin((value * 2f * PI).toFloat())
