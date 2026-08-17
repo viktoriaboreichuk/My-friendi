@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.9.11 Reference-matched storyboard splash
+name: Build Lunari 0.2.9.12 Portrait composition correction
 
 on:
   workflow_dispatch:
@@ -113,7 +113,7 @@ jobs:
           grep -F '"src_atlas":[933,721,937,386]' "$META"
           grep -F '"src_atlas":[893,1214,915,281]' "$META"
           grep -F '"src_atlas":[1163,1536,638,42]' "$META"
-          grep -F 'Keep these source rectangles exact' tools/lunari_0299_layered_splash_patch.py
+          grep -F 'Keep FULL-resolution atlas source rectangles exact' tools/lunari_0299_layered_splash_patch.py
           ! grep -F 'Sprite0299(2, 2, 286, 357' tools/lunari_0299_layered_splash_patch.py
           ! grep -F 'Sprite0299(466, 360, 469, 193' tools/lunari_0299_layered_splash_patch.py
 
@@ -125,7 +125,7 @@ jobs:
             test -s "app/src/main/res/drawable-nodpi/$f"
           done
 
-      - name: Apply Lunari 0.2.9.11 reference-matched splash
+      - name: Apply Lunari 0.2.9.12 portrait composition correction
         shell: bash
         run: |
           set -euo pipefail
@@ -142,8 +142,8 @@ jobs:
           SPLASH_KT="app/src/main/java/com/vega/yakor/LunariSplash0299.kt"
 
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 23' app/build.gradle.kts
-          grep -F 'versionName = "0.2.9.11"' app/build.gradle.kts
+          grep -F 'versionCode = 24' app/build.gradle.kts
+          grep -F 'versionName = "0.2.9.12"' app/build.gradle.kts
           grep -F 'val glowAlpha = if (title == "Миры" || title == "Чаты") 0.55f else 1f' "$HOME_KT"
           grep -F 'Route.Home -> LunariHomeV2(store, navigate)' app/src/main/java/com/vega/yakor/Screens.kt
 
@@ -157,14 +157,16 @@ jobs:
           grep -F 'Sprite0299(4, 4, 571, 713)' "$SPLASH_KT"
           grep -F 'Sprite0299(933, 721, 937, 386)' "$SPLASH_KT"
           grep -F 'Sprite0299(893, 1214, 915, 281)' "$SPLASH_KT"
-          grep -F 'drawPlaced(MOON_0299, designX = 75f, designY = 395f, spriteScale = 0.735f' "$SPLASH_KT"
-          grep -F 'drawPlaced(LOGO_0299, designX = 190f, designY = 635f, spriteScale = 0.74f' "$SPLASH_KT"
-          grep -F 'drawPlaced(STAR_0299, designX = 331f, designY = 567f, spriteScale = 0.185f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TAGLINE_0299, designX = 215f, designY = 925f, spriteScale = 0.95f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL1_0299' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL2_0299' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL3_0299' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL4_0299' "$SPLASH_KT"
+          grep -F 'drawPlaced(MOON_0299, designX = 58f, designY = 388f, spriteScale = 0.67f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL1_0299, designX = 310f, designY = 720f, spriteScale = 0.48f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL2_0299, designX = 305f, designY = 700f, spriteScale = 0.48f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL3_0299, designX = 295f, designY = 675f, spriteScale = 0.48f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL4_0299, designX = 285f, designY = 640f, spriteScale = 0.48f' "$SPLASH_KT"
+          grep -F 'drawPlaced(LOGO_0299, designX = 166f, designY = 639f, spriteScale = 0.77f' "$SPLASH_KT"
+          grep -F 'drawPlaced(STAR_0299, designX = 499f, designY = 542f, spriteScale = 0.11f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TAGLINE_0299, designX = 209f, designY = 971f, spriteScale = 0.72f' "$SPLASH_KT"
+          grep -F 'val c = mapDesign(0.76f, 0.485f)' "$SPLASH_KT"
+          grep -F 'val x = 0.34f + 0.43f * u' "$SPLASH_KT"
           ! grep -F 'drawPlaced(MOON_GLOW_0299' "$SPLASH_KT"
           grep -F 'makeSettledDust0299()' "$SPLASH_KT"
           grep -F 'makeTravellingDust0299()' "$SPLASH_KT"
@@ -189,8 +191,8 @@ jobs:
           BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
           echo "$BADGING"
           echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
-          echo "$BADGING" | grep -q "versionCode='23'"
-          echo "$BADGING" | grep -q "versionName='0.2.9.11'"
+          echo "$BADGING" | grep -q "versionCode='24'"
+          echo "$BADGING" | grep -q "versionName='0.2.9.12'"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
@@ -198,7 +200,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.9.11-reference-storyboard-splash-unsigned-base
+          name: lunari-0.2.9.12-portrait-composition-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
