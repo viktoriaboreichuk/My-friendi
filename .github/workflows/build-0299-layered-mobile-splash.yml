@@ -1,4 +1,4 @@
-name: Build Lunari 0.2.9.13 Centered composition correction
+name: Build Lunari 0.2.9.14 Full-width trail correction
 
 on:
   workflow_dispatch:
@@ -41,7 +41,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p app/src/main/res/drawable-nodpi
-
           BASE="Lunari-0.2.6-ui-assets.zip"
           test -s "$BASE"
           echo "6f19916fb7a5b556eb24d9bb702120af7f78131c19ac2a3e4564b8f3093d1ec3  $BASE" | sha256sum -c -
@@ -113,9 +112,6 @@ jobs:
           grep -F '"src_atlas":[933,721,937,386]' "$META"
           grep -F '"src_atlas":[893,1214,915,281]' "$META"
           grep -F '"src_atlas":[1163,1536,638,42]' "$META"
-          grep -F 'Keep FULL-resolution atlas source rectangles exact' tools/lunari_0299_layered_splash_patch.py
-          ! grep -F 'Sprite0299(2, 2, 286, 357' tools/lunari_0299_layered_splash_patch.py
-          ! grep -F 'Sprite0299(466, 360, 469, 193' tools/lunari_0299_layered_splash_patch.py
 
       - name: Verify preserved category artwork
         shell: bash
@@ -125,7 +121,7 @@ jobs:
             test -s "app/src/main/res/drawable-nodpi/$f"
           done
 
-      - name: Apply Lunari 0.2.9.13 centered composition correction
+      - name: Apply Lunari 0.2.9.14 full-width trail correction
         shell: bash
         run: |
           set -euo pipefail
@@ -140,43 +136,30 @@ jobs:
           HOME_KT="app/src/main/java/com/vega/yakor/LunariHomeV2.kt"
           MAIN_KT="app/src/main/java/com/vega/yakor/MainActivity.kt"
           SPLASH_KT="app/src/main/java/com/vega/yakor/LunariSplash0299.kt"
-
           grep -F 'applicationId = "com.vega.yakor"' app/build.gradle.kts
-          grep -F 'versionCode = 25' app/build.gradle.kts
-          grep -F 'versionName = "0.2.9.13"' app/build.gradle.kts
+          grep -F 'versionCode = 26' app/build.gradle.kts
+          grep -F 'versionName = "0.2.9.14"' app/build.gradle.kts
           grep -F 'val glowAlpha = if (title == "Миры" || title == "Чаты") 0.55f else 1f' "$HOME_KT"
           grep -F 'Route.Home -> LunariHomeV2(store, navigate)' app/src/main/java/com/vega/yakor/Screens.kt
-
           grep -F 'var showSplash by remember { mutableStateOf(true) }' "$MAIN_KT"
           grep -F 'LunariSplash0299(' "$MAIN_KT"
-          grep -F 'fadeOut(animationSpec = tween(durationMillis = 450))' "$MAIN_KT"
-
-          grep -F 'R.drawable.lunari_splash_base_0299' "$SPLASH_KT"
-          grep -F 'R.drawable.lunari_splash_atlas_0299' "$SPLASH_KT"
-          grep -F 'VISUAL_DIM_02913 = 0.5625f' "$SPLASH_KT"
-          grep -F 'Sprite0299(4, 4, 571, 713)' "$SPLASH_KT"
-          grep -F 'Sprite0299(933, 721, 937, 386)' "$SPLASH_KT"
-          grep -F 'Sprite0299(893, 1214, 915, 281)' "$SPLASH_KT"
+          grep -F 'VISUAL_DIM_02914 = 0.5625f' "$SPLASH_KT"
           grep -F 'drawPlaced(MOON_0299, designX = 18f, designY = 388f, spriteScale = 0.67f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL1_0299, designX = 248f, designY = 840f, spriteScale = 0.46f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL2_0299, designX = 245f, designY = 816f, spriteScale = 0.46f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL3_0299, designX = 235f, designY = 785f, spriteScale = 0.46f' "$SPLASH_KT"
-          grep -F 'drawPlaced(TRAIL4_0299, designX = 225f, designY = 748f, spriteScale = 0.46f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL1_0299, designX = 120f, designY = 840f, spriteScale = 0.46f, spriteScaleX = 0.76f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL2_0299, designX = 120f, designY = 816f, spriteScale = 0.46f, spriteScaleX = 0.77f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL3_0299, designX = 118f, designY = 785f, spriteScale = 0.46f, spriteScaleX = 0.75f' "$SPLASH_KT"
+          grep -F 'drawPlaced(TRAIL4_0299, designX = 118f, designY = 748f, spriteScale = 0.46f, spriteScaleX = 0.75f' "$SPLASH_KT"
+          grep -F 'spriteScaleX: Float = spriteScale' "$SPLASH_KT"
+          grep -F 'sprite.sw * spriteScaleX * baseScale' "$SPLASH_KT"
           grep -F 'drawPlaced(LOGO_0299, designX = 118f, designY = 639f, spriteScale = 0.77f' "$SPLASH_KT"
           grep -F 'drawPlaced(STAR_0299, designX = 499f, designY = 542f, spriteScale = 0.11f' "$SPLASH_KT"
           grep -F 'drawPlaced(TAGLINE_0299, designX = 241f, designY = 975f, spriteScale = 0.72f' "$SPLASH_KT"
-          grep -F 'val c = mapDesign(0.76f, 0.545f)' "$SPLASH_KT"
-          grep -F 'val x = 0.27f + 0.50f * u' "$SPLASH_KT"
+          grep -F 'val c = mapDesign(0.87f, 0.545f)' "$SPLASH_KT"
+          grep -F 'val x = 0.13f + 0.74f * u' "$SPLASH_KT"
           grep -F 'Modifier.size(14.dp)' "$SPLASH_KT"
           grep -F 'Arrangement.spacedBy(14.dp)' "$SPLASH_KT"
-          ! grep -F 'drawPlaced(MOON_GLOW_0299' "$SPLASH_KT"
-          grep -F 'makeSettledDust0299()' "$SPLASH_KT"
-          grep -F 'makeTravellingDust0299()' "$SPLASH_KT"
           grep -F 'activeDot = (activeDot + 1) % 4' "$SPLASH_KT"
           grep -F 'text = "Загрузка... $progressPercent%"' "$SPLASH_KT"
-          grep -F '.padding(bottom = 22.dp)' "$SPLASH_KT"
-          grep -F 'durationMillis = 5200' "$SPLASH_KT"
-          grep -F 'delay(5650)' "$SPLASH_KT"
           grep -F 'contentScale = ContentScale.Fit' "$SPLASH_KT"
           ! grep -F 'ContentScale.Crop' "$SPLASH_KT"
           ! grep -F 'ContentScale.FillBounds' "$SPLASH_KT"
@@ -193,8 +176,8 @@ jobs:
           BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 2)
           echo "$BADGING"
           echo "$BADGING" | grep -q "package: name='com.vega.yakor'"
-          echo "$BADGING" | grep -q "versionCode='25'"
-          echo "$BADGING" | grep -q "versionName='0.2.9.13'"
+          echo "$BADGING" | grep -q "versionCode='26'"
+          echo "$BADGING" | grep -q "versionName='0.2.9.14'"
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
@@ -202,6 +185,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: lunari-0.2.9.13-centered-composition-unsigned-base
+          name: lunari-0.2.9.14-full-width-trail-unsigned-base
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
