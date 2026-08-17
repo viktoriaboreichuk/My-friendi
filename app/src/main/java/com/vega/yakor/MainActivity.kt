@@ -3,6 +3,10 @@ package com.vega.yakor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     var route by remember { mutableStateOf(Route.Home) }
                     var selectedId by remember { mutableStateOf("") }
+                    var showSplash by remember { mutableStateOf(true) }
                     val navigate: (Route, String?) -> Unit = { next, id ->
                         route = next
                         selectedId = id ?: ""
@@ -49,20 +54,31 @@ class MainActivity : ComponentActivity() {
                         selectedId = ""
                     }
 
-                    if (route == Route.Settings && selectedId == "account") {
-                        LunariAccount028(
-                            store = store,
-                            onBack = back,
-                            onAiSettings = { navigate(Route.Settings, null) }
-                        )
-                    } else {
-                        YakorApp(
-                            store = store,
-                            route = route,
-                            selectedId = selectedId,
-                            navigate = navigate,
-                            back = back
-                        )
+                    Box(Modifier.fillMaxSize()) {
+                        if (route == Route.Settings && selectedId == "account") {
+                            LunariAccount028(
+                                store = store,
+                                onBack = back,
+                                onAiSettings = { navigate(Route.Settings, null) }
+                            )
+                        } else {
+                            YakorApp(
+                                store = store,
+                                route = route,
+                                selectedId = selectedId,
+                                navigate = navigate,
+                                back = back
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = showSplash,
+                            exit = fadeOut(animationSpec = tween(durationMillis = 450))
+                        ) {
+                            LunariSplash0299(
+                                onFinished = { showSplash = false }
+                            )
+                        }
                     }
                 }
             }
